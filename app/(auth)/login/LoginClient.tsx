@@ -67,7 +67,9 @@ export default function LoginClient() {
   if (magicSent) {
     return (
       <div className="w-full max-w-sm text-center animate-fade-up">
-        <h1 className="text-2xl font-medium">Check your email</h1>
+        <h1 className="text-2xl font-medium tracking-tight">
+          Check your email
+        </h1>
         <p className="text-sm text-stone-500 mt-2">
           We sent a sign-in link to {email}
         </p>
@@ -81,7 +83,7 @@ export default function LoginClient() {
             setMagicSent(false);
             setEmail("");
           }}
-          className="mt-6 text-sm text-stone-500 hover:text-stone-900"
+          className="mt-6 text-sm text-stone-500 hover:text-stone-900 outline-none"
         >
           Use another email
         </button>
@@ -92,7 +94,7 @@ export default function LoginClient() {
   return (
     <div className="w-full max-w-sm animate-fade-up">
       <div className="mb-10 text-center">
-        <h1 className="text-3xl font-medium">
+        <h1 className="text-3xl font-medium tracking-tight">
           {fromUpload ? "Continue" : "Welcome back"}
         </h1>
         <p className="text-sm text-stone-500 mt-2">
@@ -102,7 +104,7 @@ export default function LoginClient() {
         </p>
       </div>
 
-      <div className="flex bg-stone-100 rounded-2xl p-1 mb-8">
+      <div className="flex bg-stone-100 rounded-2xl p-1.5 mb-8">
         {(["password", "magic"] as const).map((m) => (
           <button
             key={m}
@@ -111,8 +113,10 @@ export default function LoginClient() {
               setError(null);
             }}
             className={cn(
-              "flex-1 py-2 rounded-xl text-sm transition-colors",
-              mode === m ? "bg-white text-black shadow-sm" : "text-stone-500",
+              "flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all outline-none",
+              mode === m
+                ? "bg-white text-stone-900 shadow-sm"
+                : "text-stone-500 hover:text-stone-700",
             )}
           >
             {m === "password" ? "Password" : "Magic link"}
@@ -131,7 +135,7 @@ export default function LoginClient() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="w-full border rounded-xl px-4 py-3"
+          className="w-full bg-stone-100 text-stone-900 placeholder:text-stone-400 rounded-2xl px-5 py-3.5 outline-none focus:bg-white focus:ring-1 focus:ring-stone-200 transition-colors"
           required
         />
 
@@ -144,13 +148,13 @@ export default function LoginClient() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full border rounded-xl px-4 py-3 pr-10"
+              className="w-full bg-stone-100 text-stone-900 placeholder:text-stone-400 rounded-2xl px-5 py-3.5 pr-10 outline-none focus:bg-white focus:ring-1 focus:ring-stone-200 transition-colors"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 outline-none"
             >
               {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
@@ -161,7 +165,7 @@ export default function LoginClient() {
 
         <button
           disabled={loading}
-          className="w-full bg-black text-white rounded-xl py-3 flex items-center justify-center gap-2 disabled:opacity-60"
+          className="w-full bg-stone-900 text-white rounded-2xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 font-medium tracking-tight transition-opacity outline-none"
         >
           {loading ? (
             <Loader2 className="animate-spin" size={16} />

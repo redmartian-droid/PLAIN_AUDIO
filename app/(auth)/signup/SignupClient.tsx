@@ -59,7 +59,9 @@ export default function SignupClient() {
   if (success) {
     return (
       <div className="w-full max-w-sm text-center animate-fade-up">
-        <h1 className="text-2xl font-medium">You're almost in</h1>
+        <h1 className="text-2xl font-medium tracking-tight">
+          You're almost in
+        </h1>
         <p className="text-sm text-stone-500 mt-2">
           Check your email: <span className="text-stone-900">{email}</span>
         </p>
@@ -81,7 +83,7 @@ export default function SignupClient() {
   return (
     <div className="w-full max-w-sm animate-fade-up">
       <div className="mb-10 text-center">
-        <h1 className="text-3xl font-medium">Create account</h1>
+        <h1 className="text-3xl font-medium tracking-tight">Create account</h1>
         <p className="text-sm text-stone-500 mt-2">
           {fromUpload
             ? "Sign up to continue your transcription"
@@ -97,7 +99,7 @@ export default function SignupClient() {
           placeholder="Full name"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          className="w-full border rounded-xl px-4 py-3"
+          className="w-full bg-stone-100 text-stone-900 placeholder:text-stone-400 rounded-2xl px-5 py-3.5 outline-none focus:bg-white focus:ring-1 focus:ring-stone-200 transition-colors"
         />
 
         <input
@@ -107,7 +109,7 @@ export default function SignupClient() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border rounded-xl px-4 py-3"
+          className="w-full bg-stone-100 text-stone-900 placeholder:text-stone-400 rounded-2xl px-5 py-3.5 outline-none focus:bg-white focus:ring-1 focus:ring-stone-200 transition-colors"
           required
         />
 
@@ -119,13 +121,13 @@ export default function SignupClient() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-xl px-4 py-3 pr-10"
+            className="w-full bg-stone-100 text-stone-900 placeholder:text-stone-400 rounded-2xl px-5 py-3.5 pr-10 outline-none focus:bg-white focus:ring-1 focus:ring-stone-200 transition-colors"
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 outline-none"
           >
             {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
@@ -138,7 +140,7 @@ export default function SignupClient() {
                 <Check
                   size={12}
                   className={
-                    r.test(password) ? "text-green-600" : "text-gray-300"
+                    r.test(password) ? "text-green-600" : "text-stone-300"
                   }
                 />
                 <span
@@ -157,7 +159,7 @@ export default function SignupClient() {
 
         <button
           disabled={loading || !passwordValid}
-          className="w-full bg-black text-white rounded-xl py-3 flex items-center justify-center gap-2 disabled:opacity-60"
+          className="w-full bg-stone-900 text-white rounded-2xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 font-medium tracking-tight transition-opacity outline-none"
         >
           {loading ? (
             <Loader2 className="animate-spin" size={16} />
