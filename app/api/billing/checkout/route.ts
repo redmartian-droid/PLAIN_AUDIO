@@ -3,10 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 
 // Validate environment variables at module load time
 const requiredEnvVars = [
-  "NEXT_PUBLIC_APP_URL",
+  "APP_BASE_URL",
   "POLAR_ACCESS_TOKEN",
   "NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID",
 ];
+
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     throw new Error(`Missing required environment variable: ${envVar}`);
@@ -15,9 +16,11 @@ for (const envVar of requiredEnvVars) {
 
 export async function GET() {
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -29,16 +32,16 @@ export async function GET() {
     .eq("id", user.id)
     .single();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+  const appUrl = process.env.APP_BASE_URL!;
 
-  // Validate APP_URL is HTTPS and well-formed
+  // Validate APP_BASE_URL is HTTPS and well-formed
   try {
     const parsedUrl = new URL(appUrl);
     if (parsedUrl.protocol !== "https:") {
-      throw new Error("APP_URL must use HTTPS");
+      throw new Error("APP_BASE_URL must use HTTPS");
     }
   } catch (e) {
-    console.error("Invalid APP_URL:", e);
+    console.error("Invalid APP_BASE_URL:", e);
     return NextResponse.json(
       { error: "Server configuration error" },
       { status: 500 },
@@ -55,10 +58,10 @@ export async function GET() {
     },
   };
 
-  // If we already have a Polar customer ID, reuse it (don't expose in redirect)
+  // If we already have a Polar customer ID, reuse it
   if (profile?.polar_customer_id) {
     body.customer_id = profile.polar_customer_id;
-    delete body.customer_email; // prefer ID when available
+    delete body.customer_email;
   }
 
   // Determine API endpoint based on environment
@@ -78,11 +81,12 @@ export async function GET() {
 
   if (!res.ok) {
     const err = await res.json();
-    // Log safely without exposing sensitive fields
+
     console.error(
       "Polar checkout error:",
       err?.error ?? err?.message ?? "unknown",
     );
+
     return NextResponse.json(
       { error: "Failed to create checkout" },
       { status: 500 },
@@ -91,7 +95,6 @@ export async function GET() {
 
   const { url } = await res.json();
 
-  // CRITICAL: Validate redirect URL to prevent open redirect
   if (!url || typeof url !== "string") {
     console.error("Invalid checkout URL from Polar");
     return NextResponse.json(
@@ -102,13 +105,16 @@ export async function GET() {
 
   try {
     const checkoutUrl = new URL(url);
-    // Whitelist Polar domains only
+
+    const isProd = process.env.POLAR_ENV === "production";
+
     const isValidPolarUrl = isProd
       ? checkoutUrl.hostname === "polar.sh"
       : checkoutUrl.hostname === "sandbox.polar.sh";
 
     if (!isValidPolarUrl) {
       console.error("Checkout URL is not from Polar:", checkoutUrl.hostname);
+
       return NextResponse.json(
         { error: "Invalid checkout URL" },
         { status: 502 },
@@ -116,6 +122,7 @@ export async function GET() {
     }
   } catch {
     console.error("Failed to parse checkout URL");
+
     return NextResponse.json(
       { error: "Invalid checkout URL format" },
       { status: 502 },
