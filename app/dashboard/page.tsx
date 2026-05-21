@@ -38,28 +38,11 @@ function SectionEyebrow({
 }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <p
-        style={{
-          ...fontMono,
-          fontSize: 10.5,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "#999",
-        }}
-      >
-        {label}
-      </p>
+      <p className="section-eyebrow">{label}</p>
       {href && linkLabel && (
         <Link
           href={href}
-          style={{
-            ...fontMono,
-            fontSize: 10.5,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "#999",
-          }}
-          className="hover:text-[#0D0D0D] transition-colors flex items-center gap-1"
+          className="section-eyebrow text-[#999] hover:text-[#0D0D0D] transition-colors flex items-center gap-1"
         >
           {linkLabel} <ChevronRight size={11} />
         </Link>

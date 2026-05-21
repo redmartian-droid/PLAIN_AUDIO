@@ -30,7 +30,7 @@ export default async function DashboardLayout({
     .order("created_at", { ascending: false });
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="dashboard-container">
       <Header
         user={{
           name: profile?.full_name || user.email?.split("@")[0],
@@ -39,15 +39,15 @@ export default async function DashboardLayout({
         }}
       />
 
-      {/* Sidebar flush against the paper bg — no card, just a right-rule divider */}
-      <div className="flex flex-1 overflow-hidden px-12 pt-0">
+      {/* Main content area with sidebar */}
+      <div className="dashboard-content">
         <Sidebar
           plan={profile?.plan || "free"}
           dailyUsed={profile?.daily_transcription_count || 0}
           dailyLimit={dailyLimit}
           folders={folders ?? []}
         />
-        <main className="flex-1 min-w-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        <main className="flex-1 min-w-0 overflow-y-auto scrollbar-hidden">
           {children}
         </main>
       </div>

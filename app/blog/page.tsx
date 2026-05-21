@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { posts, formatDate, type Post } from "@/lib/blog";
@@ -68,9 +69,22 @@ function PostRow({ post }: { post: Post }) {
 }
 
 export default function BlogPage() {
-  const sorted = [...posts].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  const [activeTag, setActiveTag] = useState<string>("All");
+
+  const tags = useMemo(() => {
+    const set = new Set(posts.map((p) => p.tag));
+    return ["All", ...Array.from(set).sort()];
+  }, []);
+
+  const filtered = useMemo(() => {
+    const base =
+      activeTag === "All"
+        ? [...posts]
+        : posts.filter((p) => p.tag === activeTag);
+    return base.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+  }, [activeTag]);
 
   return (
     <div className="min-h-screen bg-white text-[#111] antialiased selection:bg-[#f5f5f5]">
@@ -80,18 +94,43 @@ export default function BlogPage() {
         <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#aaa] mb-6">
           Blog
         </p>
-        <h1 className="text-[clamp(2rem,4vw,3rem)] font-normal tracking-tight leading-[1.1] mb-16">
+        <h1 className="text-[clamp(2rem,4vw,3rem)] font-normal tracking-tight leading-[1.1] mb-10">
           Writing
         </h1>
 
-        {sorted.map((post, i) =>
-          i === 0 ? (
-            <FeaturedPostCard key={post.slug} post={post} />
-          ) : (
-            <div key={post.slug} className="divide-y divide-[#f5f5f5]">
-              <PostRow post={post} />
-            </div>
-          ),
+        {/* Index line */}
+        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-16 font-mono text-[10px] tracking-[0.15em] uppercase">
+          {tags.map((tag) => {
+            const isActive = activeTag === tag;
+            return (
+              <button
+                key={tag}
+                onClick={() => setActiveTag(tag)}
+                className={[
+                  "py-1.5 px-0.5 transition-colors duration-150",
+                  isActive
+                    ? "text-[#111] border-b border-[#111]"
+                    : "text-[#ccc] hover:text-[#999]",
+                ].join(" ")}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+
+        {filtered.length === 0 ? (
+          <p className="text-sm text-[#bbb]">No posts in this category yet.</p>
+        ) : (
+          <div className="divide-y divide-[#f5f5f5]">
+            {filtered.map((post, i) =>
+              i === 0 ? (
+                <FeaturedPostCard key={post.slug} post={post} />
+              ) : (
+                <PostRow key={post.slug} post={post} />
+              ),
+            )}
+          </div>
         )}
       </div>
     </div>

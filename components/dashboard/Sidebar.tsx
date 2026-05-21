@@ -77,20 +77,7 @@ function navLinkClass(active: boolean) {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      className="px-2.5 mb-1.5 select-none"
-      style={{
-        fontFamily: "var(--font-mono,'Courier New',monospace)",
-        fontSize: 10,
-        letterSpacing: "0.1em",
-        textTransform: "uppercase",
-        color: "#AAA8A4",
-      }}
-    >
-      {children}
-    </p>
-  );
+  return <p className="section-label px-2.5 mb-1.5">{children}</p>;
 }
 
 export function Sidebar({
@@ -141,10 +128,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside
-        className="w-56 shrink-0 flex flex-col h-full pt-8 pr-4"
-        style={{ borderRight: "1px solid #E2E0DB" }}
-      >
+      <aside className="sidebar w-56 shrink-0 flex flex-col h-full pt-8 pr-4">
         <div className="flex-1 space-y-5">
           {/* Shortcuts */}
           <div>
@@ -245,37 +229,20 @@ export function Sidebar({
 
         {/* Usage */}
         {!isPro && (
-          <div
-            className="mb-6 rounded-xl p-3 flex flex-col gap-2"
-            style={{ background: "#F0EEEB", border: "1px solid #E2E0DB" }}
-          >
+          <div className="mb-6 rounded-xl p-3 flex flex-col gap-2 bg-[#F0EEEB] border border-[#E2E0DB]">
             <div className="flex items-center justify-between">
-              <span
-                style={{
-                  fontFamily: "var(--font-mono,'Courier New',monospace)",
-                  fontSize: 10,
-                  letterSpacing: "0.06em",
-                  color: "#AAA8A4",
-                }}
-              >
+              <span className="section-label text-[#AAA8A4]">
                 {dailyUsed} of {dailyLimit} today
               </span>
               {atLimit && (
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono,'Courier New',monospace)",
-                    fontSize: 10,
-                    color: B,
-                  }}
-                >
+                <span className="section-label text-[#D63558]">
                   limit reached
                 </span>
               )}
             </div>
 
             <div
-              className="h-[2px] rounded-full overflow-hidden"
-              style={{ background: "#E2E0DB" }}
+              className="h-[2px] rounded-full overflow-hidden bg-[#E2E0DB]"
               role="progressbar"
               aria-valuenow={dailyUsed}
               aria-valuemin={0}
@@ -286,7 +253,7 @@ export function Sidebar({
                 className="h-full rounded-full transition-[width] duration-500 ease-out"
                 style={{
                   width: `${usagePercent}%`,
-                  background: atLimit ? B : "#0D0D0D",
+                  backgroundColor: atLimit ? "#D63558" : "#0D0D0D",
                   opacity: atLimit ? 1 : 0.25,
                 }}
               />
@@ -294,15 +261,7 @@ export function Sidebar({
 
             <Link
               href="/dashboard/settings#upgrade"
-              className="flex items-center justify-center w-full min-h-[32px] rounded-lg transition-colors active:scale-[.97]"
-              style={{
-                background: "#0D0D0D",
-                color: "#F8F7F4",
-                fontFamily: "var(--font-mono,'Courier New',monospace)",
-                fontSize: 10.5,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-              }}
+              className="flex items-center justify-center w-full min-h-[32px] rounded-lg transition-colors active:scale-[.97] section-eyebrow bg-[#0D0D0D] text-[#F8F7F4]"
             >
               Go Unlimited →
             </Link>

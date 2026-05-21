@@ -463,33 +463,15 @@ export function UploadModal({
   if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+    <div className={cn("modal-overlay", animateIn && "active")}>
       {/* Backdrop */}
       <div
         className="absolute inset-0"
-        style={{
-          background: animateIn ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
-          transition: "background 220ms ease",
-        }}
         onClick={() => !isProcessing && onClose()}
       />
 
       {/* Panel */}
-      <div
-        className={cn(
-          "relative w-full max-w-[400px] overflow-hidden",
-          "bg-card border border-border/[0.08]",
-          "rounded-2xl",
-          "shadow-[0_8px_40px_rgba(0,0,0,0.10),0_1px_3px_rgba(0,0,0,0.06)]",
-          "transition-[opacity,transform] duration-[220ms]",
-          "[transition-timing-function:cubic-bezier(0.34,1.2,0.64,1)]",
-          animateIn
-            ? "opacity-100 translate-y-0 scale-100"
-            : "opacity-0 translate-y-2 scale-[0.98]",
-        )}
-      >
+      <div className={cn("modal-panel", animateIn ? "entering" : "exiting")}>
         {/* ─── Processing view ────────────────────────────────────────────── */}
         {isProcessing ? (
           <>

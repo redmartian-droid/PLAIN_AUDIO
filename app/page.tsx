@@ -60,23 +60,27 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-white text-[#111] antialiased selection:bg-[#f5f5f5]">
-      <style>{`
-        @keyframes scroll {
-          from { transform: translateX(0%); }
-          to { transform: translateX(-50%); }
-        }
-        .animate-scroll-slow {
-          animation: scroll 30s linear infinite;
-        }
-        .animate-scroll-medium {
-          animation: scroll 20s linear infinite;
-        }
-      `}</style>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes scroll {
+              from { transform: translateX(0%); }
+              to { transform: translateX(-50%); }
+            }
+            .animate-scroll-slow {
+              animation: scroll 30s linear infinite;
+            }
+            .animate-scroll-medium {
+              animation: scroll 20s linear infinite;
+            }
+          `,
+        }}
+      />
 
       <Header />
 
-      {/* SYSTEM RAIL */}
-      <div className="fixed left-6 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-6 z-40">
+      {/* SYSTEM RAIL — lowered so content sections paint over it naturally */}
+      <div className="fixed left-6 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-6 z-10 pointer-events-none">
         {["system", "ingest", "process", "export"].map((label) => (
           <span
             key={label}
@@ -87,7 +91,7 @@ export default async function HomePage() {
         ))}
       </div>
 
-      {/* HERO — items-center + optical lift */}
+      {/* HERO */}
       <section className="max-w-6xl mx-auto px-6 pt-24 md:pt-32 pb-28">
         <div className="grid md:grid-cols-12 gap-12 items-center">
           <div className="md:col-span-7">
@@ -120,11 +124,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* BANNER 1 — system telemetry */}
-      <section className="border-t border-[#f0f0f0] overflow-hidden">
-        <div className="whitespace-nowrap flex gap-10 py-4 text-[10px] font-mono tracking-widest text-[#c7c7c7] animate-scroll-medium">
+      {/* BANNER 1 — z-20 covers the rail, stays below header */}
+      <section className="relative z-20 bg-white border-t border-[#f0f0f0] overflow-hidden">
+        <div className="whitespace-nowrap flex w-max gap-10 py-4 text-[10px] font-mono tracking-widest text-[#c7c7c7] animate-scroll-medium will-change-transform">
           {[...BANNER_1_ITEMS, ...BANNER_1_ITEMS].map((item, i) => (
-            <span key={i} className="flex items-center gap-10">
+            <span key={i} className="flex items-center gap-10 shrink-0">
               <span>{item}</span>
               <span>·</span>
             </span>
@@ -141,7 +145,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* FEATURES — sticky sidebar, faint row dividers */}
+      {/* FEATURES */}
       <section className="max-w-6xl mx-auto px-6 py-40">
         <div className="grid md:grid-cols-12 gap-16 mb-32">
           <div className="md:col-span-4 md:sticky md:top-32 self-start">
@@ -302,11 +306,11 @@ export default async function HomePage() {
 
       <BlogPreview />
 
-      {/* BANNER 2 — pre-cta system state */}
-      <section className="border-t border-[#f0f0f0] overflow-hidden">
-        <div className="whitespace-nowrap flex gap-10 py-3 text-[10px] font-mono tracking-widest text-[#d0d0d0] animate-scroll-slow">
+      {/* BANNER 2 */}
+      <section className="relative z-20 bg-white border-t border-[#f0f0f0] overflow-hidden">
+        <div className="whitespace-nowrap flex w-max gap-10 py-3 text-[10px] font-mono tracking-widest text-[#d0d0d0] animate-scroll-slow will-change-transform">
           {[...BANNER_2_ITEMS, ...BANNER_2_ITEMS].map((item, i) => (
-            <span key={i} className="flex items-center gap-10">
+            <span key={i} className="flex items-center gap-10 shrink-0">
               <span>{item}</span>
               <span>·</span>
             </span>
@@ -314,7 +318,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CTA — command surface */}
+      {/* CTA */}
       <section className="border-t border-[#f0f0f0] bg-[#fafafa]">
         <div className="max-w-6xl mx-auto px-6 py-40">
           <div className="grid md:grid-cols-12 gap-16 items-end">

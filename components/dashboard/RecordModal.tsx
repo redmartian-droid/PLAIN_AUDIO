@@ -177,14 +177,14 @@ function AudioVisualizer({ stream }: { stream: MediaStream | null }) {
   }, [stream]);
 
   return (
-    <div className="flex items-end justify-center gap-[3px] h-[40px]">
+    <div className="audio-visualizer">
       {Array.from({ length: 16 }).map((_, i) => (
         <div
           key={i}
           ref={(el) => {
             barsRef.current[i] = el;
           }}
-          className="w-[3px] rounded-full bg-[#D63558] transition-[height] duration-75"
+          className="audio-visualizer-bar"
           style={{ height: 4 }}
         />
       ))}
@@ -370,33 +370,15 @@ export function RecordModal({ open, onClose, folderId }: RecordModalProps) {
   if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+    <div className={cn("modal-overlay", animateIn && "active")}>
       {/* Backdrop */}
       <div
         className="absolute inset-0"
-        style={{
-          background: animateIn ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
-          transition: "background 220ms ease",
-        }}
         onClick={() => !isProcessing && onClose()}
       />
 
       {/* Panel */}
-      <div
-        className={cn(
-          "relative w-full max-w-[400px] overflow-hidden",
-          "bg-card border border-border/[0.08]",
-          "rounded-2xl",
-          "shadow-[0_8px_40px_rgba(0,0,0,0.10),0_1px_3px_rgba(0,0,0,0.06)]",
-          "transition-[opacity,transform] duration-[220ms]",
-          "[transition-timing-function:cubic-bezier(0.34,1.2,0.64,1)]",
-          animateIn
-            ? "opacity-100 translate-y-0 scale-100"
-            : "opacity-0 translate-y-2 scale-[0.98]",
-        )}
-      >
+      <div className={cn("modal-panel", animateIn ? "entering" : "exiting")}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border/[0.08]">
           <p className="text-[14px] font-medium tracking-tight text-foreground">
@@ -424,18 +406,9 @@ export function RecordModal({ open, onClose, folderId }: RecordModalProps) {
               {/* Record button */}
               <button
                 onClick={handleStart}
-                className={cn(
-                  "relative w-20 h-20 rounded-full flex items-center justify-center",
-                  "bg-[#D63558] text-white",
-                  "shadow-lg shadow-[#D63558]/20",
-                  "transition-transform duration-200",
-                  "hover:scale-105 active:scale-95",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558] focus-visible:ring-offset-2",
-                )}
+                className="btn-record focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558] focus-visible:ring-offset-2"
               >
                 <Mic size={28} strokeWidth={2} />
-                {/* Pulse ring */}
-                <span className="absolute inset-0 rounded-full animate-ping bg-[#D63558]/30" />
               </button>
 
               <div className="text-center">
@@ -475,13 +448,7 @@ export function RecordModal({ open, onClose, folderId }: RecordModalProps) {
               {/* Stop button */}
               <button
                 onClick={handleStop}
-                className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center",
-                  "bg-foreground text-background",
-                  "transition-transform duration-150",
-                  "hover:opacity-85 active:scale-90",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-foreground/40",
-                )}
+                className="btn-stop focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-foreground/40"
               >
                 <Square size={16} fill="currentColor" />
               </button>

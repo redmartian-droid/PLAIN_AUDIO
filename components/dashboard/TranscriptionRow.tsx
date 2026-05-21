@@ -47,18 +47,9 @@ export function TranscriptionRow({
   return (
     <div
       className={cn(
-        "group flex items-stretch rounded-lg bg-card",
-        // Committed warm border — same token as sidebar, no ambiguity
-        "border border-[#E2E0DB]",
-        "transition-[transform,background-color,border-color] duration-200 ease-out",
-        "active:scale-[0.991] active:duration-75",
-        "hover:bg-[#F0EEEB]/50 hover:border-[#D8D6D1]",
-        "focus-within:bg-[#F0EEEB]/40 focus-within:border-[#D8D6D1]",
-        selected && [
-          "bg-[#F0EEEB]",
-          "border-[#D8D6D1]",
-          "shadow-[0_0_0_1px_#D8D6D1]",
-        ],
+        "transcription-row",
+        selectionMode && "selection-mode",
+        selected && "selected",
       )}
     >
       {/* Selection anchor */}
@@ -73,17 +64,7 @@ export function TranscriptionRow({
           onKeyDown={handleSelectKey}
           aria-pressed={selected}
           aria-label={selected ? "Deselect" : "Select"}
-          className={cn(
-            "w-10 shrink-0 flex items-center justify-center",
-            "transition-all duration-150 ease-out",
-            "focus-visible:opacity-100 focus-visible:bg-[#F0EEEB]",
-            selectionMode
-              ? "opacity-100 translate-x-0"
-              : [
-                  "opacity-0 -translate-x-1",
-                  "group-hover:opacity-100 group-hover:translate-x-0",
-                ],
-          )}
+          className="selection-toggle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558]/40 focus-visible:ring-offset-2"
         >
           <Checkbox checked={!!selected} />
         </button>
@@ -131,12 +112,11 @@ export function TranscriptionRow({
           <div
             className={cn(
               "hidden sm:flex items-center gap-2",
-              "text-[12px] tabular-nums",
+              "text-[12px] tabular-nums font-mono",
               "text-muted-foreground/40",
               "transition-colors duration-150",
               "group-hover:text-muted-foreground/65",
             )}
-            style={{ fontFamily: "var(--font-mono,'Courier New',monospace)" }}
           >
             <span>{formatRelativeTime(t.created_at)}</span>
 
@@ -206,11 +186,10 @@ export function StatusBadge({ status }: { status: string }) {
         "px-2 py-[3px]",
         "rounded-full border",
         "shrink-0",
-        "text-[11px] font-medium",
+        "text-[11px] font-medium font-mono",
         "transition-colors duration-150",
         config.className,
       )}
-      style={{ fontFamily: "var(--font-mono,'Courier New',monospace)" }}
     >
       <span className="opacity-75">{config.icon}</span>
       <span>{config.label}</span>
