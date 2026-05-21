@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { FolderOpen, Loader2, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -20,6 +21,7 @@ export function MoveToFolderDropdown({
   currentFolderId,
   onMoved,
 }: MoveToFolderDropdownProps) {
+  const router = useRouter();
   const [folders, setFolders] = useState<Folder[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,6 +81,7 @@ export function MoveToFolderDropdown({
 
       setIsOpen(false);
       onMoved?.();
+      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to move transcription",
@@ -93,29 +96,35 @@ export function MoveToFolderDropdown({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 text-sm text-amber hover:text-amber-dark font-medium transition-colors"
         disabled={isMoving}
+        className="flex items-center gap-2 text-sm text-[var(--warning)] hover:text-[var(--warning)]/80 font-medium transition-colors disabled:opacity-50"
       >
         <FolderOpen size={14} />
         Move to folder
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-56 bg-parchment border border-border rounded-lg shadow-lg z-10 overflow-hidden animate-fade-in">
+        <div className="absolute top-full right-0 mt-2 w-56 bg-card border border-border rounded-lg shadow-lg z-10 overflow-hidden animate-fade-in">
           {error && (
-            <div className="p-3 bg-red-50 border-b border-red-200 flex items-start gap-2">
-              <AlertCircle size={14} className="text-red-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-red-600">{error}</p>
+            <div className="p-3 bg-destructive/10 border-b border-destructive/20 flex items-start gap-2">
+              <AlertCircle
+                size={14}
+                className="text-destructive mt-0.5 shrink-0"
+              />
+              <p className="text-xs text-destructive">{error}</p>
             </div>
           )}
 
           <div className="max-h-64 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-6">
-                <Loader2 size={16} className="animate-spin text-mist" />
+                <Loader2
+                  size={16}
+                  className="animate-spin text-muted-foreground"
+                />
               </div>
             ) : folders.length === 0 ? (
-              <div className="p-4 text-center text-sm text-mist">
+              <div className="p-4 text-center text-sm text-muted-foreground">
                 No folders yet. Create one first.
               </div>
             ) : (
@@ -124,7 +133,7 @@ export function MoveToFolderDropdown({
                   <button
                     onClick={() => handleMoveToFolder(null)}
                     disabled={isMoving}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-mist hover:bg-surface hover:text-ink transition-colors text-xs disabled:opacity-50"
+                    className="w-full text-left px-3 py-2 rounded-lg text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
                   >
                     No folder
                   </button>
@@ -134,10 +143,10 @@ export function MoveToFolderDropdown({
                     key={folder.id}
                     onClick={() => handleMoveToFolder(folder.id)}
                     disabled={isMoving || folder.id === currentFolderId}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-surface transition-colors disabled:opacity-50 ${
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-accent transition-colors disabled:opacity-50 ${
                       folder.id === currentFolderId
-                        ? "bg-terra-light text-terra font-medium"
-                        : "text-ink"
+                        ? "bg-accent text-foreground font-medium"
+                        : "text-foreground"
                     }`}
                   >
                     {folder.name}

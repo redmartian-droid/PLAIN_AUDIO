@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { DM_Sans, DM_Serif_Display, JetBrains_Mono, Geist } from "next/font/google";
+import {
+  DM_Sans,
+  DM_Serif_Display,
+  JetBrains_Mono,
+  Geist,
+} from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -25,20 +30,22 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kungwi — AI Transcription",
+  title: "PLAIN — AI Transcription for Audio & Video",
   description:
-    "Transform your audio and video into accurate, searchable transcripts powered by Google Gemini.",
+    "Fast, accurate AI transcription for audio and video. Upload files, get structured text with timestamps, speaker labels, and export-ready formats.",
   keywords: [
-    "transcription",
-    "AI",
-    "audio",
-    "video",
-    "subtitle",
-    "South Africa",
+    "AI transcription",
+    "audio transcription",
+    "video transcription",
+    "speech to text",
+    "automatic transcription",
+    "meeting transcription",
+    "subtitle generator",
   ],
   openGraph: {
-    title: "Kungwi — AI Transcription",
-    description: "Transform audio and video into accurate transcripts.",
+    title: "PLAIN — AI Transcription for Audio & Video",
+    description:
+      "Upload audio or video and get accurate transcripts with timestamps and speaker labels.",
     type: "website",
   },
 };
@@ -51,7 +58,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(dmSans.variable, dmSerif.variable, jetbrainsMono.variable, "font-sans", geist.variable)}
+      className={cn(
+        dmSans.variable,
+        dmSerif.variable,
+        jetbrainsMono.variable,
+        "font-sans",
+        geist.variable,
+      )}
     >
       <body className="font-sans antialiased">{children}</body>
     </html>

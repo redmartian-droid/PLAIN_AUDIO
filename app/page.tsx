@@ -1,214 +1,369 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import {
-  ArrowRight,
-  Mic,
-  FileText,
-  Zap,
-  Globe,
-  Lock,
-  Download,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { Header } from "@/components/Header";
+import { LandingUploadZone } from "@/components/landing/LandingUploadZone";
+import { PricingSection } from "@/components/landing/PricingSection";
+import { BlogPreview } from "@/components/landing/BlogPreview";
+
+const USE_CASES = [
+  {
+    role: "Researchers",
+    desc: "Turn hours of interviews into searchable, labeled transcripts — no note-taking during the session.",
+  },
+  {
+    role: "Podcast editors",
+    desc: "Get a full script with speaker names before you open your DAW. Cut by reading, not by listening.",
+  },
+  {
+    role: "Consultants",
+    desc: "Every client call documented automatically. Quotes pulled, context preserved, nothing lost.",
+  },
+  {
+    role: "Journalists",
+    desc: "Record your source, upload the file, write from the transcript. Interviews done in half the time.",
+  },
+  {
+    role: "Students",
+    desc: "Lectures, seminars, study groups — transcribed with timestamps so you can review what matters.",
+  },
+  {
+    role: "Legal & compliance",
+    desc: "Accurate records of meetings and depositions, exported in the format your workflow needs.",
+  },
+];
+
+const BANNER_1_ITEMS = [
+  "system online",
+  "queue idle",
+  "processing latency: low",
+  "input module ready",
+  "transcription engine stable",
+];
+
+const BANNER_2_ITEMS = [
+  "no configuration required",
+  "audio normalization active",
+  "speaker segmentation enabled",
+  "export formats ready",
+];
 
 export default async function HomePage() {
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (user) redirect("/dashboard");
 
-  const features = [
-    {
-      icon: Mic,
-      title: "Any audio or video",
-      desc: "MP3, WAV, MP4, MOV, WebM — if it has sound, Kungwi can transcribe it.",
-    },
-    {
-      icon: Zap,
-      title: "Gemini-powered accuracy",
-      desc: "Google's latest AI understands accents, dialects, and technical language.",
-    },
-    {
-      icon: Globe,
-      title: "100+ languages",
-      desc: "Automatic language detection. Transcribe in any language spoken on earth.",
-    },
-    {
-      icon: FileText,
-      title: "Rich exports",
-      desc: "Download your transcript as TXT, SRT subtitles, or a clean PDF.",
-    },
-    {
-      icon: Lock,
-      title: "Private by default",
-      desc: "Your files are encrypted and only accessible to you.",
-    },
-    {
-      icon: Download,
-      title: "Timestamps & speakers",
-      desc: "Every word is timestamped. Multiple speakers are automatically labelled.",
-    },
-  ];
-
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link
-            href="/"
-            className="font-display text-xl font-bold tracking-tight text-ink"
+    <div className="min-h-screen bg-white text-[#111] antialiased selection:bg-[#f5f5f5]">
+      <style>{`
+        @keyframes scroll {
+          from { transform: translateX(0%); }
+          to { transform: translateX(-50%); }
+        }
+        .animate-scroll-slow {
+          animation: scroll 30s linear infinite;
+        }
+        .animate-scroll-medium {
+          animation: scroll 20s linear infinite;
+        }
+      `}</style>
+
+      <Header />
+
+      {/* SYSTEM RAIL */}
+      <div className="fixed left-6 top-1/2 -translate-y-1/2 hidden md:flex flex-col gap-6 z-40">
+        {["system", "ingest", "process", "export"].map((label) => (
+          <span
+            key={label}
+            className="text-[9px] font-mono tracking-[0.25em] text-[#d0d0d0] uppercase [writing-mode:vertical-rl] [transform:rotate(180deg)]"
           >
-            Kung<span className="text-amber">wi</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm text-mist hover:text-ink transition-colors px-3 py-1.5"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-1.5 bg-ink text-surface text-sm font-medium px-4 py-2 rounded-full hover:bg-ink-soft transition-colors"
-            >
-              Get started
-              <ArrowRight size={13} />
-            </Link>
+            {label}
+          </span>
+        ))}
+      </div>
+
+      {/* HERO — items-center + optical lift */}
+      <section className="max-w-6xl mx-auto px-6 pt-24 md:pt-32 pb-28">
+        <div className="grid md:grid-cols-12 gap-12 items-center">
+          <div className="md:col-span-7">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#aaa] mb-8">
+              AI transcription platform
+            </p>
+
+            <h1 className="text-[clamp(2.5rem,5vw,4.5rem)] font-normal tracking-tight leading-[1.1] mb-8">
+              Audio input{" "}
+              <span className="text-[#ccc]">→ structured output</span>
+            </h1>
+
+            <p className="text-base text-[#888] max-w-md leading-[1.7] mb-12">
+              Queued for transcription. Speaker labels, timestamps, and export
+              formats ready on completion.
+            </p>
+
+            <div className="flex items-center gap-6 text-[11px] text-[#bbb] tracking-wide uppercase">
+              <span>No credit card</span>
+              <span className="text-[#e5e5e5]">/</span>
+              <span>3 free daily</span>
+              <span className="text-[#e5e5e5]">/</span>
+              <span>Fast processing</span>
+            </div>
+          </div>
+
+          <div className="md:col-span-5 md:pl-8 md:-mt-2">
+            <LandingUploadZone />
           </div>
         </div>
-      </header>
+      </section>
 
-      {/* Hero */}
-      <main className="flex-1">
-        <section className="dot-grid max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
-          <div className="inline-flex items-center gap-2 bg-amber-light text-amber-dark text-xs font-semibold px-3 py-1.5 rounded-full mb-8 animate-fade-in">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber animate-pulse" />
-            Powered by Google Gemini 2.0
-          </div>
+      {/* BANNER 1 — system telemetry */}
+      <section className="border-t border-[#f0f0f0] overflow-hidden">
+        <div className="whitespace-nowrap flex gap-10 py-4 text-[10px] font-mono tracking-widest text-[#c7c7c7] animate-scroll-medium">
+          {[...BANNER_1_ITEMS, ...BANNER_1_ITEMS].map((item, i) => (
+            <span key={i} className="flex items-center gap-10">
+              <span>{item}</span>
+              <span>·</span>
+            </span>
+          ))}
+        </div>
+      </section>
 
-          <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-ink leading-[1.08] tracking-tight mb-6 animate-fade-up">
-            Your words,
-            <br />
-            <span className="text-amber italic">perfectly captured.</span>
-          </h1>
-
-          <p className="text-lg text-mist max-w-xl mx-auto mb-10 leading-relaxed animate-fade-up [animation-delay:80ms]">
-            Kungwi turns any audio or video into accurate, searchable
-            transcripts in minutes. Built for clarity, speed, and the way you
-            actually work.
+      {/* CONTEXT STRIP */}
+      <section className="border-t border-[#f0f0f0]">
+        <div className="max-w-6xl mx-auto px-6 py-16">
+          <p className="text-[11px] text-[#bbb] tracking-wide">
+            Works with meetings, lectures, interviews, podcasts, and voice notes
           </p>
+        </div>
+      </section>
 
-          <div className="flex items-center justify-center gap-3 animate-fade-up [animation-delay:160ms]">
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 bg-amber text-ink font-semibold px-6 py-3 rounded-full hover:bg-amber-dark transition-all hover:shadow-lg hover:shadow-amber/20 hover:-translate-y-0.5"
-            >
-              Start for free
-              <ArrowRight size={15} />
-            </Link>
-            <Link
-              href="/login"
-              className="text-sm text-ink-soft hover:text-ink font-medium px-4 py-3 transition-colors"
-            >
-              Sign in →
-            </Link>
-          </div>
-
-          <p className="mt-4 text-xs text-mist-light animate-fade-up [animation-delay:220ms]">
-            3 free transcriptions per day · No credit card required
-          </p>
-        </section>
-
-        {/* Mock UI Preview */}
-        <section className="max-w-5xl mx-auto px-6 pb-16">
-          <div className="rounded-2xl border border-border bg-surface shadow-soft overflow-hidden">
-            <div className="bg-ink/4 border-b border-border px-4 py-3 flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-              <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-              <span className="ml-2 text-xs text-mist font-medium">
-                Dashboard · Kungwi
-              </span>
-            </div>
-            <div className="p-8">
-              <div className="flex gap-6">
-                {/* Sidebar preview */}
-                <div className="w-44 shrink-0 space-y-1">
-                  <div className="h-3 w-20 rounded shimmer mb-4" />
-                  {["Recent", "Folders", "Settings"].map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-amber-light/50 cursor-default"
-                    >
-                      <div className="w-3 h-3 rounded shimmer" />
-                      <span className="text-xs text-mist">{item}</span>
-                    </div>
-                  ))}
-                </div>
-                {/* Content preview */}
-                <div className="flex-1 space-y-3">
-                  <div className="h-4 w-32 rounded shimmer" />
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-4 p-4 rounded-xl border border-border bg-background/50"
-                    >
-                      <div className="w-8 h-8 rounded-lg shimmer shrink-0" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="h-3 w-48 rounded shimmer" />
-                        <div className="h-2.5 w-24 rounded shimmer" />
-                      </div>
-                      <div className="h-6 w-16 rounded-full shimmer" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Features */}
-        <section className="max-w-5xl mx-auto px-6 pb-24">
-          <div className="text-center mb-12">
-            <h2 className="font-display text-3xl font-bold text-ink mb-3">
-              Everything you need
-            </h2>
-            <p className="text-mist">
-              Professional transcription without the complexity.
+      {/* FEATURES — sticky sidebar, faint row dividers */}
+      <section className="max-w-6xl mx-auto px-6 py-40">
+        <div className="grid md:grid-cols-12 gap-16 mb-32">
+          <div className="md:col-span-4 md:sticky md:top-32 self-start">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#aaa] mb-6">
+              Capabilities
             </p>
+            <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">
+              Everything you need in a transcript
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="p-5 rounded-2xl border border-border bg-surface hover:border-amber/30 hover:shadow-soft transition-all group"
-              >
-                <div className="w-9 h-9 rounded-xl bg-amber-light flex items-center justify-center mb-4 group-hover:bg-amber/10 transition-colors">
-                  <f.icon size={16} className="text-amber" />
+          <div className="md:col-span-7 md:col-start-6">
+            <div className="divide-y divide-[#f5f5f5]">
+              {[
+                {
+                  num: "01",
+                  title: "Upload anything",
+                  desc: "MP3, MP4, WAV, M4A — drop your file as-is. No converting, no compressing first.",
+                },
+                {
+                  num: "02",
+                  title: "Accuracy you won't have to fix",
+                  desc: "Handles accents, background noise, and overlapping speech without manual correction.",
+                },
+                {
+                  num: "03",
+                  title: "Know who said what",
+                  desc: "Speakers are automatically separated and labeled so you never lose track of a voice.",
+                },
+                {
+                  num: "04",
+                  title: "Works in any language",
+                  desc: "No setup needed. Speak, upload, and get a transcript — regardless of language.",
+                },
+                {
+                  num: "05",
+                  title: "Jump to any moment",
+                  desc: "Every line links to its exact timestamp so you can skip straight to what matters.",
+                },
+                {
+                  num: "06",
+                  title: "Use it wherever you work",
+                  desc: "Export as TXT for notes, SRT for subtitles, or DOC to drop into your workflow.",
+                },
+              ].map((f) => (
+                <div key={f.num} className="py-10 first:pt-0 last:pb-0 group">
+                  <div className="flex items-baseline gap-6 mb-3">
+                    <span className="text-[10px] font-mono text-[#ddd] tracking-wider">
+                      {f.num}
+                    </span>
+                    <h3 className="text-lg font-normal text-[#111]">
+                      {f.title}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-[#999] leading-[1.8] pl-12 max-w-sm">
+                    {f.desc}
+                  </p>
                 </div>
-                <h3 className="font-semibold text-ink text-sm mb-1.5">
-                  {f.title}
-                </h3>
-                <p className="text-mist text-sm leading-relaxed">{f.desc}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="border-t border-[#f0f0f0]">
+        <div className="max-w-6xl mx-auto px-6 py-40">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#aaa] mb-20">
+            Workflow
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-16">
+            {[
+              {
+                step: "01",
+                title: "Upload",
+                desc: "Drop an audio or video file into the platform.",
+              },
+              {
+                step: "02",
+                title: "Process",
+                desc: "We transcribe it using AI with timestamps and structure.",
+              },
+              {
+                step: "03",
+                title: "Export",
+                desc: "Download or copy your transcript instantly.",
+              },
+            ].map((s, i) => (
+              <div key={s.step} className="relative">
+                {i !== 2 && (
+                  <div className="hidden md:block absolute top-2 right-0 w-px h-full bg-[#f0f0f0] translate-x-8" />
+                )}
+                <p className="text-[10px] font-mono text-[#ddd] tracking-wider mb-6">
+                  {s.step}
+                </p>
+                <h3 className="text-lg font-normal mb-3">{s.title}</h3>
+                <p className="text-sm text-[#999] leading-[1.8]">{s.desc}</p>
               </div>
             ))}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="font-display text-sm font-bold text-ink">
-            Kung<span className="text-amber">wi</span>
-          </span>
-          <p className="text-xs text-mist-light">
-            © 2026 Kungwi. All rights reserved.
-          </p>
+      {/* USE CASES */}
+      <section className="border-t border-[#f0f0f0]">
+        <div className="max-w-6xl mx-auto px-6 py-40">
+          <div className="grid md:grid-cols-12 gap-16 mb-24">
+            <div className="md:col-span-5">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#aaa] mb-6">
+                Use cases
+              </p>
+              <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">
+                Built for anyone who works with audio
+              </h2>
+            </div>
+            <div className="md:col-span-5 md:col-start-8 self-end">
+              <p className="text-sm text-[#999] leading-[1.8]">
+                If you record it, PLAIN can transcribe it.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-20">
+            {USE_CASES.map((u) => (
+              <div key={u.role} className="group">
+                <p className="text-sm font-normal text-[#111] mb-3 tracking-tight">
+                  {u.role}
+                </p>
+                <p className="text-sm text-[#999] leading-[1.8]">{u.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section id="pricing" className="border-t border-[#f0f0f0]">
+        <div className="max-w-6xl mx-auto px-6 py-40">
+          <div className="grid md:grid-cols-12 gap-16 mb-24">
+            <div className="md:col-span-5">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#aaa] mb-6">
+                Pricing
+              </p>
+              <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">
+                Simple pricing
+              </h2>
+            </div>
+            <div className="md:col-span-5 md:col-start-8 self-end">
+              <p className="text-sm text-[#999] leading-[1.8]">
+                Start free. Upgrade when you need more.
+              </p>
+            </div>
+          </div>
+          <PricingSection />
+        </div>
+      </section>
+
+      <BlogPreview />
+
+      {/* BANNER 2 — pre-cta system state */}
+      <section className="border-t border-[#f0f0f0] overflow-hidden">
+        <div className="whitespace-nowrap flex gap-10 py-3 text-[10px] font-mono tracking-widest text-[#d0d0d0] animate-scroll-slow">
+          {[...BANNER_2_ITEMS, ...BANNER_2_ITEMS].map((item, i) => (
+            <span key={i} className="flex items-center gap-10">
+              <span>{item}</span>
+              <span>·</span>
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA — command surface */}
+      <section className="border-t border-[#f0f0f0] bg-[#fafafa]">
+        <div className="max-w-6xl mx-auto px-6 py-40">
+          <div className="grid md:grid-cols-12 gap-16 items-end">
+            <div className="md:col-span-7">
+              <h2 className="text-[clamp(2rem,4vw,3.5rem)] font-normal tracking-tight leading-[1.1] mb-8">
+                Start transcribing
+                <br />
+                <span className="text-[#ccc]">in seconds</span>
+              </h2>
+              <p className="text-sm text-[#999] leading-[1.8] max-w-md">
+                Try it for free. No credit card required. Upgrade when you need
+                more.
+              </p>
+            </div>
+
+            <div className="md:col-span-4 md:col-start-9">
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-3 border border-[#dcdcdc] bg-white px-8 py-4 text-sm font-mono tracking-wide rounded-2xl hover:border-[#111] active:scale-[0.98] transition-all duration-300"
+              >
+                execute transcription
+                <ArrowRight size={14} strokeWidth={1.5} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-[#f0f0f0] py-16">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-baseline gap-8 text-[11px] text-[#bbb] tracking-wide">
+          <span className="font-normal text-[#111]">PLAIN</span>
+
+          <div className="flex gap-10">
+            <Link href="/blog" className="hover:text-[#111] transition-colors">
+              Blog
+            </Link>
+            <Link
+              href="/privacy"
+              className="hover:text-[#111] transition-colors"
+            >
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-[#111] transition-colors">
+              Terms
+            </Link>
+          </div>
+
+          <span className="font-mono text-[10px]">© 2026</span>
         </div>
       </footer>
     </div>

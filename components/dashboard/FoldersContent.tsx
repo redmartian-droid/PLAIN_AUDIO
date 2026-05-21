@@ -1,105 +1,237 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { FolderOpen, Plus } from "lucide-react";
-import { formatRelativeTime } from "@/lib/utils";
-import { NewFolderModal } from "./NewFolderModal";
+import { Plus, Search, X } from "lucide-react";
+import { formatRelativeTime, cn } from "@/lib/utils";
+import { FolderIcon } from "../ui/folder-icon";
 
-type Folder = {
+type FolderItem = {
   id: string;
   name: string;
   created_at: string;
   transcriptionCount: number;
+  is_default?: boolean;
 };
 
+/* ─── Inline Create ─── */
+function InlineFolderCard({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: (name: string) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
+  async function handleConfirm() {
+    if (!name.trim() || loading) return;
+    setLoading(true);
+    await onConfirm(name.trim());
+    setLoading(false);
+  }
+
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="relative mb-1.5">
+        <FolderIcon className="w-20 h-20 drop-shadow-sm" />
+      </div>
+      <input
+        ref={inputRef}
+        type="text"
+        placeholder="New Folder"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleConfirm();
+          if (e.key === "Escape") onCancel();
+        }}
+        className="w-28 text-center bg-transparent text-xs font-medium placeholder:text-muted-foreground/60 focus:outline-none border-b border-border focus:border-foreground pb-0.5"
+      />
+      <div className="flex gap-1 mt-2">
+        <button
+          onClick={onCancel}
+          className="px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleConfirm}
+          disabled={!name.trim() || loading}
+          className="px-3 py-1 text-xs font-semibold bg-foreground text-background rounded-full disabled:opacity-40 transition-all active:scale-[0.97]"
+        >
+          Create
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Component ─── */
 export function FoldersContent({
   initialFolders,
 }: {
-  initialFolders: Folder[];
+  initialFolders: FolderItem[];
 }) {
-  const [folders, setFolders] = useState<Folder[]>(initialFolders);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const [folders, setFolders] = useState<FolderItem[]>(initialFolders);
+  const [inlineNew, setInlineNew] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const handleFolderCreated = (folderId: string) => {
-    // Refetch the folders list or add the new folder optimistically
-    // For now, just close the modal - the user can refresh to see it
-    setFolders([]);
-    // Trigger a page refresh to get the new folder
-    window.location.reload();
-  };
+  useEffect(() => {
+    setFolders(initialFolders);
+  }, [initialFolders]);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") setInlineNew(true);
+  }, [searchParams]);
+
+  async function handleCreate(name: string) {
+    const res = await fetch("/api/folders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      setFolders((prev) => [{ ...data, transcriptionCount: 0 }, ...prev]);
+    }
+    setInlineNew(false);
+  }
+
+  const filtered = search.trim()
+    ? folders.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()))
+    : folders;
 
   return (
     <>
-      <div className="flex-1 p-8 max-w-4xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-8 animate-fade-up">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-ink mb-1">
-              Folders
-            </h1>
-            <p className="text-mist text-sm">{folders.length} total</p>
-          </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-amber text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-amber-dark transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-amber/20"
-          >
-            <Plus size={14} />
-            New folder
-          </button>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">
+            Folders
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {folders.length} {folders.length === 1 ? "folder" : "folders"}
+          </p>
         </div>
 
-        {folders.length === 0 ? (
-          <div className="bg-surface border border-dashed border-border rounded-2xl p-16 text-center animate-fade-up">
-            <div className="w-12 h-12 rounded-2xl bg-amber-light flex items-center justify-center mx-auto mb-4">
-              <FolderOpen size={20} className="text-amber" />
-            </div>
-            <h3 className="font-semibold text-ink mb-1.5">No folders yet</h3>
-            <p className="text-sm text-mist mb-5">
-              Create a folder to organize your transcriptions.
-            </p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 bg-ink text-surface text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-ink-soft transition-colors"
-            >
-              <Plus size={14} /> Create your first
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-children">
-            {folders.map((folder: any) => (
-              <Link
-                key={folder.id}
-                href={`/dashboard/folders/${folder.id}`}
-                className="flex flex-col bg-surface border border-border rounded-xl p-5 hover:border-amber/30 hover:shadow-soft transition-all group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-amber-light flex items-center justify-center group-hover:bg-amber/10 transition-colors">
-                    <FolderOpen size={18} className="text-amber" />
-                  </div>
-                </div>
-                <p className="text-sm font-semibold text-ink mb-1 line-clamp-2">
-                  {folder.name}
-                </p>
-                <p className="text-xs text-mist mb-3">
-                  {folder.transcriptionCount}{" "}
-                  {folder.transcriptionCount === 1
-                    ? "transcription"
-                    : "transcriptions"}
-                </p>
-                <p className="text-xs text-mist-light mt-auto">
-                  Modified {formatRelativeTime(folder.created_at)}
-                </p>
-              </Link>
-            ))}
-          </div>
+        {/* Button — matches NewTranscriptionButton exactly */}
+        <button
+          onClick={() => setInlineNew(true)}
+          disabled={inlineNew}
+          className={cn(
+            "inline-flex items-center justify-center gap-2",
+            "bg-primary text-primary-foreground font-semibold rounded-xl",
+            "min-h-[44px] px-4 text-sm",
+            "[transition:background-color_150ms_ease,box-shadow_150ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
+            "hover:bg-primary/90 hover:shadow-md hover:-translate-y-0.5",
+            "active:scale-[.97] active:shadow-none active:translate-y-0",
+            "disabled:opacity-50 disabled:pointer-events-none",
+          )}
+        >
+          <Plus size={17} aria-hidden />
+          New folder
+        </button>
+      </div>
+
+      {/* Search — matches TranscriptionsSearch exactly */}
+      <div className="max-w-xs mb-4 relative">
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+        />
+        <input
+          type="text"
+          placeholder="Search folders..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className={cn(
+            "w-full min-h-[44px] pl-9 pr-11 py-3",
+            "bg-card border border-border rounded-xl",
+            "text-sm text-foreground placeholder:text-muted-foreground",
+            "transition-[border-color,box-shadow] duration-200 ease-in-out",
+            "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
+          )}
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            aria-label="Clear search"
+            className={cn(
+              "absolute right-0 top-1/2 -translate-y-1/2",
+              "w-11 h-11 flex items-center justify-center",
+              "text-muted-foreground",
+              "[transition:color_200ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
+              "hover:text-foreground active:scale-90",
+            )}
+          >
+            <X size={14} />
+          </button>
         )}
       </div>
 
-      <NewFolderModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onFolderCreated={handleFolderCreated}
-      />
+      {/* Grid */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+        {inlineNew && (
+          <InlineFolderCard
+            onConfirm={handleCreate}
+            onCancel={() => setInlineNew(false)}
+          />
+        )}
+
+        {filtered.map((folder) => (
+          <Link
+            key={folder.id}
+            href={`/dashboard/folders/${folder.id}`}
+            className="group flex flex-col items-center text-center relative"
+          >
+            <div className="relative mb-1.5 transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
+              <FolderIcon className="w-20 h-20 drop-shadow-sm" />
+
+              {folder.transcriptionCount > 0 && (
+                <div className="absolute -bottom-1 -right-1 bg-white text-black text-[9px] font-semibold px-1.5 py-0.5 rounded-full shadow-sm border border-gray-100">
+                  {folder.transcriptionCount}
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs font-medium text-muted-foreground px-1 line-clamp-2 group-hover:text-foreground transition-colors leading-tight">
+              {folder.name}
+            </p>
+
+            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+              {formatRelativeTime(folder.created_at)}
+            </p>
+
+            {folder.is_default && (
+              <span className="text-[9px] uppercase tracking-wider text-emerald-600 font-medium mt-0.5">
+                Default
+              </span>
+            )}
+          </Link>
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {!inlineNew && filtered.length === 0 && (
+        <div className="text-center py-12">
+          <div className="mx-auto mb-3">
+            <FolderIcon className="w-20 h-20 mx-auto opacity-50" />
+          </div>
+          <p className="text-sm font-medium">No folders found</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Try a different search term
+          </p>
+        </div>
+      )}
     </>
   );
 }

@@ -9,8 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@deepgram/sdk": "^5.0.0",
     "@google/generative-ai": "^0.21.0",
-    "@polar-sh/nextjs": "^0.3.14",
+    "@polar-sh/nextjs": "^0.3.23",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.4",
     "@tailwindcss/postcss": "^4.2.2",

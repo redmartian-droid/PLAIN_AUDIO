@@ -23,6 +23,6 @@ export async function GET() {
   }
 
   // Polar customer portal URL
-  const portalUrl = `https://polar.sh/purchases`;
+  const portalUrl = `https://sandbox.polar.sh/purchases?customer_id=${profile.polar_customer_id}`;
   return NextResponse.redirect(portalUrl);
 }

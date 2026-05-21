@@ -1,77 +1,65 @@
-import { NextRequest, NextResponse } from "next/server";
+import { Webhooks } from "@polar-sh/nextjs";
 import { createClient } from "@supabase/supabase-js";
-import { validatePolarWebhook } from "@/lib/polar";
 
-// Use service role for webhook processing
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+// Use service role key — this runs server-side, bypasses RLS
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+);
 
-export async function POST(request: NextRequest) {
-  const rawBody = await request.text();
-  const signature = request.headers.get("webhook-signature") || "";
+export const POST = Webhooks({
+  webhookSecret: process.env.POLAR_WEBHOOK_SECRET!,
+  onPayload: async (payload) => {
+    const event = payload as any;
+    const data = event.data;
 
-  // Validate webhook signature
-  const isValid = await validatePolarWebhook(rawBody, signature);
-  if (!isValid) {
-    console.error("Invalid Polar webhook signature");
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
+    // Pull the supabase user ID you stored in metadata at checkout
+    const supabaseUserId = data.metadata?.supabase_user_id;
 
-  const event = JSON.parse(rawBody);
-  const supabase = getAdminClient();
+    if (!supabaseUserId) {
+      console.error("No supabase_user_id in metadata", data.id);
+      return;
+    }
 
-  try {
     switch (event.type) {
       case "subscription.created":
       case "subscription.updated": {
-        const sub = event.data;
-        const customerEmail = sub.customer?.email;
-        if (!customerEmail) break;
+        const plan = data.status === "active" ? "pro" : "free";
+        const customerId = data.customer_id ?? data.customer?.id ?? null;
 
-        const isActive = sub.status === "active";
-
-        await supabase
+        const { error } = await supabase
           .from("profiles")
           .update({
-            plan: isActive ? "pro" : "free",
-            polar_customer_id: sub.customer?.id,
-            polar_subscription_id: sub.id,
+            plan,
+            polar_customer_id: customerId,
+            polar_subscription_id: data.id,
             updated_at: new Date().toISOString(),
           })
-          .eq("email", customerEmail);
+          .eq("id", supabaseUserId);
 
+        if (error) console.error("Failed to update profile:", error);
+        else
+          console.log(`${supabaseUserId} → ${plan} | customer: ${customerId}`);
         break;
       }
 
-      case "subscription.canceled":
-      case "subscription.revoked": {
-        const sub = event.data;
-        const customerEmail = sub.customer?.email;
-        if (!customerEmail) break;
-
-        await supabase
+      case "subscription.canceled": {
+        const { error } = await supabase
           .from("profiles")
           .update({
             plan: "free",
+            polar_subscription_id: null,
             updated_at: new Date().toISOString(),
           })
-          .eq("email", customerEmail);
+          .eq("id", supabaseUserId);
 
+        if (error) console.error("Failed to downgrade profile:", error);
+        else console.log(`${supabaseUserId} → free (canceled)`);
         break;
       }
 
       default:
-        // Unhandled event type — ignore
-        break;
+        console.log(`Unhandled event: ${event.type}`);
     }
-
-    return NextResponse.json({ received: true });
-  } catch (error) {
-    console.error("Webhook processing error:", error);
-    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
-  }
-}
+  },
+});

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Download, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Download, ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface ExportButtonsProps {
+export interface ExportButtonsProps {
   transcription: {
     id: string;
     title: string;
@@ -17,85 +18,272 @@ interface ExportButtonsProps {
   };
 }
 
+/* ─── Helpers ─── */
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function fmtSrt(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  const ms = Math.round((sec % 1) * 1000);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
+}
+
+function fmtReadable(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  const parts: string[] = [];
+  if (h > 0) parts.push(String(h));
+  parts.push(String(m).padStart(2, "0"));
+  parts.push(String(s).padStart(2, "0"));
+  return parts.join(":");
+}
+
 function toSRT(
   segments: ExportButtonsProps["transcription"]["segments"],
 ): string {
   if (!segments || segments.length === 0) return "";
-
-  function fmt(sec: number): string {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = Math.floor(sec % 60);
-    const ms = Math.round((sec % 1) * 1000);
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
-  }
-
   return segments
     .map(
       (seg, i) =>
-        `${i + 1}\n${fmt(seg.start)} --> ${fmt(seg.end)}\n${seg.text}\n`,
+        `${i + 1}\n${fmtSrt(seg.start)} --> ${fmtSrt(seg.end)}\n${seg.text}\n`,
     )
     .join("\n");
 }
 
+function toDocument(
+  transcription: ExportButtonsProps["transcription"],
+): string {
+  const { title, segments, full_text } = transcription;
+
+  const header = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(title)}</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.15;color:#000;max-width:816px;margin:2em auto;padding:0 2em;}
+h1{font-size:18pt;font-weight:normal;margin-bottom:6pt;color:#000;}
+.sub{color:#666;font-size:10pt;margin-bottom:24pt;}
+.speaker{font-weight:bold;color:#1a1a1a;}
+.time{color:#999;font-size:9pt;margin-right:6pt;}
+p{margin:0 0 8pt 0;}
+</style>
+</head>
+<body>
+<h1>${escapeHtml(title)}</h1>
+<p class="sub">Exported from PLAIN</p>`;
+
+  let body: string;
+  if (segments && segments.length > 0) {
+    body = segments
+      .map((seg) => {
+        const speakerHtml = seg.speaker
+          ? `<span class="speaker">${escapeHtml(seg.speaker)}:</span> `
+          : "";
+        return `<p><span class="time">${fmtReadable(seg.start)}</span>${speakerHtml}${escapeHtml(seg.text)}</p>`;
+      })
+      .join("\n");
+  } else {
+    const paragraphs = (full_text || "")
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    body =
+      paragraphs.length > 0
+        ? paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("\n")
+        : `<p>${escapeHtml(full_text || "")}</p>`;
+  }
+
+  return header + "\n" + body + "\n</body></html>";
+}
+
+/* ─── Component ─── */
+
 export function ExportButtons({ transcription }: ExportButtonsProps) {
   const [open, setOpen] = useState(false);
+  const [justDone, setJustDone] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function download(content: string, filename: string, type: string) {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-    setOpen(false);
-  }
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => itemRefs.current[0]?.focus());
+    } else {
+      triggerRef.current?.focus();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const items = itemRefs.current.filter(Boolean) as HTMLButtonElement[];
+        const current = document.activeElement;
+        const idx = items.indexOf(current as HTMLButtonElement);
+        const next =
+          e.key === "ArrowDown"
+            ? (idx + 1) % items.length
+            : (idx - 1 + items.length) % items.length;
+        items[next]?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  const download = useCallback(
+    (content: string, filename: string, type: string) => {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setJustDone(true);
+      if (doneTimer.current) clearTimeout(doneTimer.current);
+      doneTimer.current = setTimeout(() => setJustDone(false), 1500);
+    },
+    [],
+  );
 
   const slug = transcription.title.replace(/\s+/g, "_").toLowerCase();
 
   const options = [
     {
-      label: "Plain text (.txt)",
+      label: "Plain text",
+      detail: ".txt",
       action: () =>
         download(transcription.full_text || "", `${slug}.txt`, "text/plain"),
     },
     {
-      label: "SRT subtitles (.srt)",
+      label: "Document",
+      detail: ".doc",
+      action: () =>
+        download(
+          toDocument(transcription),
+          `${slug}.doc`,
+          "application/msword",
+        ),
+    },
+    {
+      label: "SRT subtitles",
+      detail: ".srt",
       action: () =>
         download(toSRT(transcription.segments), `${slug}.srt`, "text/plain"),
     },
   ];
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 bg-ink text-surface text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-ink-soft transition-colors"
+        ref={triggerRef}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls="export-menu"
+        className={cn(
+          "flex items-center gap-2 min-h-[44px] px-4",
+          "bg-[#D63558] text-white text-sm font-semibold rounded-xl",
+          "[transition:background-color_150ms_ease,box-shadow_150ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
+          "hover:bg-[#D63558]/80 hover:shadow-md hover:-translate-y-0.5",
+          "active:scale-[.97] active:shadow-none active:translate-y-0",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558]/50",
+        )}
       >
-        <Download size={12} />
+        {justDone ? (
+          <Check
+            size={14}
+            aria-hidden
+            className="[transition:opacity_200ms_ease]"
+          />
+        ) : (
+          <Download
+            size={14}
+            aria-hidden
+            className="[transition:opacity_200ms_ease]"
+          />
+        )}
         Export
         <ChevronDown
-          size={12}
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
+          size={14}
+          aria-hidden
+          className={cn(
+            "[transition:transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
+            open && "rotate-180",
+          )}
         />
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 z-20 bg-surface border border-border rounded-xl shadow-modal py-1 w-44 animate-fade-in">
-            {options.map((opt) => (
-              <button
-                key={opt.label}
-                onClick={opt.action}
-                className="w-full text-left px-4 py-2.5 text-xs font-medium text-ink-soft hover:bg-surface hover:text-ink transition-colors"
-              >
+        <div
+          id="export-menu"
+          role="menu"
+          aria-label="Export format"
+          className={cn(
+            "absolute right-0 top-full mt-2 z-20",
+            "bg-card border border-border rounded-xl shadow-lg",
+            "py-1 min-w-[180px]",
+            "origin-top-right",
+            "animate-in fade-in-0 zoom-in-95 duration-200",
+          )}
+        >
+          {options.map((opt, i) => (
+            <button
+              key={opt.label}
+              ref={(el) => {
+                itemRefs.current[i] = el;
+              }}
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                opt.action();
+              }}
+              className={cn(
+                "w-full text-left min-h-[44px] flex items-center justify-between",
+                "px-4 gap-3",
+                "text-sm font-medium",
+                "transition-colors duration-150",
+                "text-muted-foreground hover:bg-accent hover:text-foreground active:bg-accent/70",
+                "focus-visible:outline-none focus-visible:bg-accent focus-visible:text-foreground",
+              )}
+            >
+              <span>
                 {opt.label}
-              </button>
-            ))}
-          </div>
-        </>
+                <span className="text-xs text-muted-foreground/60 ml-1 font-normal">
+                  {opt.detail}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -1,114 +1,234 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { X, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
-type NewFolderModalProps = {
-  isOpen: boolean;
+interface NewFolderModalProps {
+  open: boolean;
   onClose: () => void;
-  onFolderCreated: (folderId: string) => void;
-};
+  onSuccess?: (folder: { id: string; name: string }) => void;
+}
+
+function useFocusTrap(
+  ref: React.RefObject<HTMLDivElement | null>,
+  active: boolean,
+) {
+  useEffect(() => {
+    if (!active || !ref.current) return;
+    const el = ref.current;
+    const getFocusable = () =>
+      Array.from(
+        el.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const nodes = getFocusable();
+      if (!nodes.length) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    el.addEventListener("keydown", onKeyDown);
+    return () => el.removeEventListener("keydown", onKeyDown);
+  }, [active, ref]);
+}
 
 export function NewFolderModal({
-  isOpen,
+  open,
   onClose,
-  onFolderCreated,
+  onSuccess,
 }: NewFolderModalProps) {
-  const [folderName, setFolderName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  useFocusTrap(panelRef, open);
 
-    if (!folderName.trim()) {
-      setError("Folder name cannot be empty");
-      return;
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      setName("");
+      setError(null);
+      setTimeout(() => inputRef.current?.focus(), 60);
+    } else {
+      const t = setTimeout(() => setMounted(false), 220);
+      return () => clearTimeout(t);
     }
+  }, [open]);
 
-    setIsLoading(true);
+  useEffect(() => {
+    if (!open) return;
+    const fn = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [open, onClose]);
+
+  if (!mounted) return null;
+
+  async function handleSubmit() {
+    if (!name.trim() || loading) return;
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch("/api/folders", {
+      const res = await fetch("/api/folders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: folderName }),
+        body: JSON.stringify({ name: name.trim() }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to create folder");
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong.");
+        return;
       }
-
-      const folder = await response.json();
-      setFolderName("");
-      onFolderCreated(folder.id);
+      onSuccess ? onSuccess(data) : router.refresh();
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+    } catch {
+      setError("Something went wrong.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
-
-  if (!isOpen) return null;
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-surface rounded-2xl shadow-xl max-w-sm w-full animate-fade-up">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="font-semibold text-ink">New folder</h2>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="folder-modal-title"
+      style={{
+        background: open ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        transition: "background 200ms ease",
+      }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        ref={panelRef}
+        className={cn(
+          // Layout
+          "w-full max-w-[360px] px-5 py-5",
+          // Surface — matches bg-card + hairline border from TranscriptionRow
+          "bg-card border border-border/[0.08]",
+          "rounded-xl",
+          "shadow-[0_8px_40px_rgba(0,0,0,0.10),0_1px_3px_rgba(0,0,0,0.06)]",
+          // Entry/exit spring — same easing family as row transitions
+          "motion-safe:transition-[opacity,transform]",
+          "motion-safe:duration-[220ms]",
+          "motion-safe:[transition-timing-function:cubic-bezier(0.34,1.2,0.64,1)]",
+          open
+            ? "opacity-100 translate-y-0 scale-100"
+            : "opacity-0 translate-y-2 scale-[0.98]",
+        )}
+      >
+        {/* Left-aligned title — Linear never centres dialog headings */}
+        <h2
+          id="folder-modal-title"
+          className="text-[14px] font-medium tracking-tight text-foreground mb-4"
+        >
+          New folder
+        </h2>
+
+        {/* Input */}
+        <input
+          ref={inputRef}
+          type="text"
+          // "Untitled" over "Folder name" — Linear idiom; less instructional
+          placeholder="Untitled"
+          value={name}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(e) => {
+            setName(e.target.value);
+            setError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSubmit();
+          }}
+          maxLength={80}
+          aria-describedby={error ? "folder-name-error" : undefined}
+          aria-invalid={!!error}
+          className={cn(
+            "w-full h-[38px] px-3",
+            "rounded-lg border",
+            "text-[13px] font-medium text-foreground",
+            "placeholder:text-muted-foreground/38 placeholder:font-normal",
+            "bg-accent/[0.28]",
+            "outline-none",
+            "transition-[border-color] duration-150",
+            error
+              ? "border-red-500/30 bg-red-500/[0.04]"
+              : "border-border/[0.08] focus:border-border/30",
+          )}
+        />
+
+        {error && (
+          <p
+            id="folder-name-error"
+            role="alert"
+            className="mt-1.5 text-[11px] text-red-500/75"
+          >
+            {error}
+          </p>
+        )}
+
+        {/* Actions — right-aligned row, both h-8 for consistent rhythm */}
+        <div className="mt-4 flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="text-mist hover:text-ink transition-colors"
+            className={cn(
+              "h-8 px-3 rounded-lg",
+              "text-[13px] font-medium text-muted-foreground/55",
+              "hover:text-muted-foreground hover:bg-accent/[0.50]",
+              "transition-colors duration-150",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border/40",
+            )}
           >
-            <X size={18} />
+            Cancel
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            disabled={!name.trim() || loading}
+            className={cn(
+              "h-8 px-3 rounded-lg",
+              // Monochromatic primary — foreground on background inverse
+              "bg-foreground text-background",
+              "text-[13px] font-medium",
+              "transition-all duration-150",
+              "hover:opacity-85 active:scale-[0.98]",
+              // 40% disabled — readable as inactive, not broken
+              "disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:ring-foreground/40",
+            )}
+          >
+            {loading ? "Creating…" : "Create"}
           </button>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-ink mb-2">
-              Folder name
-            </label>
-            <input
-              ref={inputRef}
-              type="text"
-              value={folderName}
-              onChange={(e) => setFolderName(e.target.value)}
-              placeholder="e.g., Interviews, Meetings..."
-              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-amber/50 focus:border-amber transition-all"
-              disabled={isLoading}
-              autoFocus
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-surface border border-border rounded-lg text-sm font-medium text-ink hover:bg-mist/10 transition-colors disabled:opacity-50"
-              disabled={isLoading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-terra text-white rounded-lg text-sm font-medium hover:bg-terra-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 size={14} className="animate-spin" />}
-              {isLoading ? "Creating..." : "Create"}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );

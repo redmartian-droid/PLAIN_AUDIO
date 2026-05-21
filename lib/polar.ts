@@ -33,23 +33,3 @@ export type Plan = keyof typeof PLANS;
 export function getPolarCheckoutUrl(productId: string): string {
   return `https://polar.sh/checkout?product_id=${productId}`;
 }
-
-export async function validatePolarWebhook(
-  body: string,
-  signature: string
-): Promise<boolean> {
-  const secret = process.env.POLAR_WEBHOOK_SECRET!;
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["verify"]
-  );
-
-  const sigBuffer = Buffer.from(signature.replace("sha256=", ""), "hex");
-  const bodyBuffer = encoder.encode(body);
-
-  return crypto.subtle.verify("HMAC", key, sigBuffer, bodyBuffer);
-}

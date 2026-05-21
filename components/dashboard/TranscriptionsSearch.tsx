@@ -1,35 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { FileAudio, Plus, Search, X } from "lucide-react";
-import { formatRelativeTime, formatDuration } from "@/lib/utils";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { FileAudio, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+import { NewTranscriptionButton } from "./NewTranscriptionButton";
+import {
+  TranscriptionRow,
+  TranscriptionRowData,
+  Checkbox,
+} from "./TranscriptionRow";
+import { BulkActionsBar } from "./BulkActionsBar";
+import { useSelection } from "@/hooks/useSelection";
 
-type Transcription = {
-  id: string;
-  title: string;
-  full_text: string;
-  created_at: string;
-  status: string;
-  duration_seconds: number;
-  word_count: number;
-  language: string;
+type Transcription = TranscriptionRowData & {
+  full_text?: string;
+  clean_text?: string;
 };
-
-// Highlight matching search terms in text
-function highlightMatches(text: string, query: string) {
-  if (!query.trim()) return text;
-
-  const regex = new RegExp(
-    `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-    "gi",
-  );
-  return text.replace(
-    regex,
-    '<mark className="bg-amber-light text-amber-dark">$1</mark>',
-  );
-}
 
 export function TranscriptionsSearch({
   initialTranscriptions,
@@ -42,6 +30,30 @@ export function TranscriptionsSearch({
   );
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
+  const router = useRouter();
+  const { selected, toggle, toggleAll, clear, isSelected, count } =
+    useSelection<string>();
+
+  const allIds = transcriptions.map((t) => t.id);
+  const allSelected = count === allIds.length && allIds.length > 0;
+  const someSelected = count > 0 && !allSelected;
+
+  // ── Scroll fade state ──────────────────────────────────────────────────
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [fadeTop, setFadeTop] = useState(false);
+  const [fadeBottom, setFadeBottom] = useState(false);
+
+  const updateFades = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    setFadeTop(scrollTop > 8);
+    setFadeBottom(scrollTop + clientHeight < scrollHeight - 8);
+  }, []);
+
+  useEffect(() => {
+    updateFades();
+  }, [transcriptions, updateFades]);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -52,10 +64,10 @@ export function TranscriptionsSearch({
 
       setIsLoading(true);
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("transcriptions")
           .select(
-            "id, title, created_at, status, word_count, duration_seconds, language",
+            "id, title, created_at, status, word_count, duration_seconds, language, clean_text",
           )
           .textSearch("fts", searchQuery, {
             type: "websearch",
@@ -63,7 +75,20 @@ export function TranscriptionsSearch({
           })
           .order("created_at", { ascending: false });
 
-        setTranscriptions((data as Transcription[]) || []);
+        if (error) {
+          console.error("Search error:", error);
+          return;
+        }
+
+        const withPreviews = (data ?? []).map((t) => ({
+          ...t,
+          preview: t.clean_text
+            ? t.clean_text.slice(0, 120).trimEnd() +
+              (t.clean_text.length > 120 ? "…" : "")
+            : undefined,
+        }));
+
+        setTranscriptions(withPreviews as Transcription[]);
       } catch (error) {
         console.error("Search error:", error);
       } finally {
@@ -74,135 +99,247 @@ export function TranscriptionsSearch({
     return () => clearTimeout(timer);
   }, [searchQuery, initialTranscriptions]);
 
+  // ─── UPDATED: bulk delete with storage cleanup ─────────────────────────
+  async function handleBulkDelete() {
+    if (!selected.size) return;
+
+    // 1. Fetch storage paths before deleting rows
+    const { data: items } = await supabase
+      .from("transcriptions")
+      .select("id, audio_storage_path")
+      .in("id", [...selected])
+      .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "");
+
+    const paths = (items ?? [])
+      .map((t) => t.audio_storage_path)
+      .filter((p): p is string => !!p);
+
+    // 2. Delete DB records first (source of truth)
+    await supabase
+      .from("transcriptions")
+      .delete()
+      .in("id", [...selected]);
+
+    // 3. Best-effort storage cleanup
+    if (paths.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from("audio-uploads")
+        .remove(paths);
+      if (storageError) {
+        console.warn("Failed to delete storage files:", storageError);
+      }
+    }
+
+    clear();
+    router.refresh();
+  }
+
+  async function handleBulkExport() {
+    const ids = [...selected];
+    const { data } = await supabase
+      .from("transcriptions")
+      .select("title, full_text")
+      .in("id", ids);
+
+    const content = (data ?? [])
+      .map((t) => `### ${t.title}\n\n${t.full_text ?? ""}`)
+      .join("\n\n---\n\n");
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "transcriptions_export.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleBulkMove() {
+    console.log("Move selected:", [...selected]);
+  }
+
   return (
     <>
+      {/* Header */}
       <div className="flex items-center justify-between mb-8 animate-fade-up">
         <div>
-          <h1 className="font-display text-3xl font-bold text-ink mb-1">
+          <h1 className="font-display text-3xl font-bold text-foreground mb-1">
             All transcriptions
           </h1>
-          <p className="text-mist text-sm">{transcriptions.length} total</p>
+          <p className="text-muted-foreground text-sm">
+            {transcriptions.length} total
+          </p>
         </div>
-        <Link
-          href="/dashboard/new"
-          className="flex items-center gap-2 bg-amber text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-amber-dark transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-amber/20"
-        >
-          <Plus size={14} />
-          New
-        </Link>
+        <NewTranscriptionButton />
       </div>
 
+      {/* Search */}
       <div className="mb-6 animate-fade-up [animation-delay:40ms] relative">
         <Search
           size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-mist pointer-events-none"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
         />
         <input
           type="text"
           placeholder="Search transcriptions..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-3 py-2.5 bg-surface border border-border rounded-lg text-sm text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-terra/50 focus:border-terra transition-all"
+          className={cn(
+            "w-full min-h-[44px] pl-9 pr-11 py-3",
+            "bg-card border border-border rounded-xl",
+            "text-sm text-foreground placeholder:text-muted-foreground",
+            "transition-[border-color,box-shadow] duration-200 ease-in-out",
+            "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
+          )}
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-mist hover:text-ink transition-colors"
+            aria-label="Clear search"
+            className={cn(
+              "absolute right-0 top-1/2 -translate-y-1/2",
+              "w-11 h-11 flex items-center justify-center",
+              "text-muted-foreground",
+              "[transition:color_200ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
+              "hover:text-foreground active:scale-90",
+            )}
           >
             <X size={14} />
           </button>
         )}
       </div>
 
+      {/* Empty — no results */}
       {searchQuery && transcriptions.length === 0 ? (
-        <div className="bg-surface border border-dashed border-border rounded-2xl p-16 text-center animate-fade-up">
-          <div className="w-12 h-12 rounded-2xl bg-terra-light flex items-center justify-center mx-auto mb-4">
-            <FileAudio size={20} className="text-terra" />
-          </div>
-          <h3 className="font-semibold text-ink mb-1.5">
+        <div className="mt-24 text-center animate-fade-up space-y-4">
+          <p className="text-sm text-muted-foreground">
             No results for "{searchQuery}"
-          </h3>
-          <p className="text-sm text-mist mb-5">Try a different search term.</p>
+          </p>
           <button
             onClick={() => setSearchQuery("")}
-            className="inline-flex items-center gap-2 bg-ink text-parchment text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-ink-soft transition-colors"
+            className={cn(
+              "inline-flex items-center gap-2",
+              "bg-primary text-primary-foreground",
+              "text-sm font-semibold px-5 py-3 rounded-xl",
+              "[transition:background-color_200ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1),box-shadow_200ms_ease]",
+              "hover:bg-primary/90 hover:shadow-sm",
+              "active:scale-[.97] active:shadow-none",
+            )}
           >
             Clear search
           </button>
         </div>
       ) : !transcriptions || transcriptions.length === 0 ? (
-        <div className="bg-surface border border-dashed border-border rounded-2xl p-16 text-center animate-fade-up">
-          <div className="w-12 h-12 rounded-2xl bg-terra-light flex items-center justify-center mx-auto mb-4">
-            <FileAudio size={20} className="text-terra" />
-          </div>
-          <h3 className="font-semibold text-ink mb-1.5">
-            No transcriptions yet
-          </h3>
-          <p className="text-sm text-mist mb-5">
-            Your transcriptions will appear here once you upload a file.
-          </p>
-          <Link
-            href="/dashboard/new"
-            className="inline-flex items-center gap-2 bg-ink text-parchment text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-ink-soft transition-colors"
-          >
-            <Plus size={14} /> Create your first
-          </Link>
+        <div className="mt-24 text-center animate-fade-up">
+          <p className="text-sm text-muted-foreground">0 transcriptions</p>
         </div>
       ) : (
-        <div className="space-y-2 stagger-children">
-          {isLoading && (
-            <div className="text-center text-mist text-sm">Searching...</div>
-          )}
-          {!isLoading &&
-            transcriptions.map((t) => (
-              <Link
-                key={t.id}
-                href={`/dashboard/transcriptions/${t.id}`}
-                className="flex items-center gap-4 bg-surface border border-border rounded-xl px-4 py-4 hover:border-terra/30 hover:shadow-soft transition-all group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-parchment flex items-center justify-center shrink-0 group-hover:bg-terra-light transition-colors">
-                  <FileAudio
-                    size={15}
-                    className="text-mist group-hover:text-terra transition-colors"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink truncate">
-                    <HighlightedText text={t.title} query={searchQuery} />
-                  </p>
-                  <p className="text-xs text-mist mt-0.5">
-                    {formatRelativeTime(t.created_at)}
-                    {t.duration_seconds
-                      ? ` · ${formatDuration(t.duration_seconds)}`
-                      : ""}
-                    {t.word_count
-                      ? ` · ${t.word_count.toLocaleString()} words`
-                      : ""}
-                    {t.language ? ` · ${t.language.toUpperCase()}` : ""}
-                  </p>
-                </div>
-                <StatusChip status={t.status} />
-              </Link>
-            ))}
-        </div>
+        <>
+          {/* Select-all — sits outside the scroll area */}
+          <div className="flex items-center gap-2.5 mb-2 px-1">
+            <button
+              onClick={() => toggleAll(allIds)}
+              aria-label={allSelected ? "Deselect all" : "Select all"}
+              className={cn(
+                "flex items-center gap-2 min-h-[44px] px-1",
+                "text-xs text-muted-foreground",
+                "transition-colors duration-200 hover:text-foreground",
+                "active:opacity-70",
+              )}
+            >
+              <Checkbox checked={allSelected} indeterminate={someSelected} />
+              <span>{allSelected ? "Deselect all" : "Select all"}</span>
+            </button>
+            {count > 0 && (
+              <span className="text-xs text-muted-foreground">
+                · {count} selected
+              </span>
+            )}
+          </div>
+
+          {/* Scroll container with fades */}
+          <div className="relative">
+            {/* Top fade */}
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-x-0 top-0 z-10 h-8",
+                "bg-gradient-to-b from-background to-transparent",
+                "transition-opacity duration-200",
+                fadeTop ? "opacity-100" : "opacity-0",
+              )}
+            />
+
+            {/* Scrollable list */}
+            <div
+              ref={scrollRef}
+              onScroll={updateFades}
+              className="max-h-[calc(100vh-280px)] overflow-y-auto pr-0.5 scrollbar-hidden"
+            >
+              <div className="space-y-2 stagger-children py-0.5">
+                {isLoading ? (
+                  <LoadingRows />
+                ) : (
+                  transcriptions.map((t) => (
+                    <TranscriptionRow
+                      key={t.id}
+                      transcription={t}
+                      selected={isSelected(t.id)}
+                      onSelect={() => toggle(t.id)}
+                      showLanguage
+                    >
+                      <HighlightedText text={t.title} query={searchQuery} />
+                    </TranscriptionRow>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Bottom fade */}
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8",
+                "bg-gradient-to-t from-background to-transparent",
+                "transition-opacity duration-200",
+                fadeBottom ? "opacity-100" : "opacity-0",
+              )}
+            />
+          </div>
+        </>
       )}
+
+      <BulkActionsBar
+        count={count}
+        onClear={clear}
+        onExport={handleBulkExport}
+        onMove={handleBulkMove}
+        onDelete={handleBulkDelete}
+      />
     </>
   );
 }
 
-function StatusChip({ status }: { status: string }) {
-  const map = {
-    completed: "text-green-700 bg-green-50 border-green-100",
-    processing: "text-yellow-700 bg-yellow-50 border-yellow-100",
-    pending: "text-gray-500 bg-gray-50 border-gray-100",
-    failed: "text-red-600 bg-red-50 border-red-100",
-  };
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function LoadingRows() {
   return (
-    <span
-      className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${map[status as keyof typeof map] ?? map.pending}`}
-    >
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
+    <div className="space-y-2" aria-label="Searching..." aria-busy="true">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 w-full bg-card border border-border rounded-xl pl-4 pr-4 py-3"
+          style={{ opacity: 1 - i * 0.2 }}
+        >
+          <div className="w-11 h-11 rounded-lg bg-muted animate-pulse shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3.5 bg-muted animate-pulse rounded-md w-2/3" />
+            <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+          </div>
+          <div className="h-6 w-14 bg-muted animate-pulse rounded-full shrink-0" />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -217,7 +354,10 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
-          <mark key={i} className="bg-terra-light text-terra-dark font-medium">
+          <mark
+            key={i}
+            className="bg-primary/15 text-primary font-medium rounded-sm px-0.5 not-italic"
+          >
             {part}
           </mark>
         ) : (

@@ -21,11 +21,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // MEDIUM: Validate folder name max length
+    const sanitizedName = name.trim();
+    if (sanitizedName.length > 100) {
+      return NextResponse.json(
+        { error: "Folder name must be 100 characters or less" },
+        { status: 400 },
+      );
+    }
+
     const { data, error } = await supabase
       .from("folders")
       .insert({
         user_id: user.id,
-        name: name.trim(),
+        name: sanitizedName,
       })
       .select()
       .single();

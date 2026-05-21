@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2, FileAudio } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { loadPendingMeta } from "@/lib/pending-transcription";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  const fromUpload = searchParams.get("from") === "upload";
+  const pendingMeta = fromUpload ? loadPendingMeta() : null;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,9 +24,12 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"password" | "magic">("password");
   const [magicSent, setMagicSent] = useState(false);
 
+  const dashboardHref = fromUpload
+    ? "/dashboard?resumeTranscription=1"
+    : "/dashboard";
+
   async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !password) return;
     setLoading(true);
     setError(null);
 
@@ -34,51 +42,59 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push(dashboardHref);
       router.refresh();
     }
   }
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
-    if (!email) return;
     setLoading(true);
     setError(null);
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      options: {
+        emailRedirectTo: `${appUrl}${dashboardHref}`,
+      },
     });
 
     setLoading(false);
-    if (error) {
-      setError(error.message);
-    } else {
-      setMagicSent(true);
-    }
+    if (error) setError(error.message);
+    else setMagicSent(true);
   }
 
   if (magicSent) {
     return (
       <div className="w-full max-w-sm text-center animate-fade-up">
-        <div className="w-14 h-14 rounded-2xl bg-amber-light flex items-center justify-center mx-auto mb-6">
+        <div className="w-14 h-14 rounded-2xl bg-stone-100 border border-stone-200 flex items-center justify-center mx-auto mb-6">
           <span className="text-2xl">✉️</span>
         </div>
-        <h1 className="font-display text-2xl font-bold text-ink mb-2">
+
+        <h1 className="font-display text-2xl font-medium text-stone-900 tracking-tight mb-2">
           Check your email
         </h1>
-        <p className="text-mist text-sm mb-6">
+
+        <p className="text-stone-500 text-sm leading-relaxed">
           We sent a sign-in link to{" "}
-          <strong className="text-ink">{email}</strong>
+          <span className="text-stone-900 font-medium">{email}</span>.
         </p>
+
+        {fromUpload && (
+          <p className="text-stone-400 text-xs mt-3">
+            Your transcription will continue after sign-in.
+          </p>
+        )}
+
         <button
           onClick={() => {
             setMagicSent(false);
             setEmail("");
           }}
-          className="text-sm text-amber hover:text-amber-dark transition-colors"
+          className="mt-6 text-sm text-stone-500 hover:text-stone-900 transition-colors"
         >
-          Use a different email
+          Use another email
         </button>
       </div>
     );
@@ -86,15 +102,38 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-sm animate-fade-up">
-      <div className="mb-8 text-center">
-        <h1 className="font-display text-3xl font-bold text-ink mb-2">
-          Welcome back
+      {/* Pending file banner */}
+      {fromUpload && pendingMeta && (
+        <div className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-8 bg-white border border-stone-200">
+          <div className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center shrink-0">
+            <FileAudio size={14} className="text-stone-600" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-stone-900 tracking-tight">
+              Pending upload
+            </p>
+            <p className="text-xs text-stone-500 truncate">
+              {pendingMeta.name}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="mb-10 text-center">
+        <h1 className="font-display text-3xl font-medium text-stone-900 tracking-tight mb-2">
+          {fromUpload ? "Continue" : "Welcome back"}
         </h1>
-        <p className="text-mist text-sm">Sign in to your Kungwi account</p>
+        <p className="text-stone-500 text-sm leading-relaxed">
+          {fromUpload
+            ? "Sign in to resume your transcription"
+            : "Sign in to your workspace"}
+        </p>
       </div>
 
       {/* Mode toggle */}
-      <div className="flex bg-border/40 rounded-xl p-1 mb-6">
+      <div className="flex bg-stone-100 rounded-2xl p-1 mb-8">
         {(["password", "magic"] as const).map((m) => (
           <button
             key={m}
@@ -103,10 +142,10 @@ export default function LoginPage() {
               setError(null);
             }}
             className={cn(
-              "flex-1 text-sm font-medium py-2 rounded-lg transition-all",
+              "flex-1 text-sm font-medium py-2.5 rounded-xl transition-all",
               mode === m
-                ? "bg-surface text-ink shadow-card"
-                : "text-mist hover:text-ink",
+                ? "bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                : "text-stone-500 hover:text-stone-700",
             )}
           >
             {m === "password" ? "Password" : "Magic link"}
@@ -116,47 +155,49 @@ export default function LoginPage() {
 
       <form
         onSubmit={mode === "password" ? handlePasswordLogin : handleMagicLink}
-        className="space-y-4"
+        className="space-y-5"
       >
         {/* Email */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-ink-soft tracking-wide uppercase">
+          <label className="block text-[11px] font-semibold text-stone-500 tracking-[0.14em] uppercase">
             Email
           </label>
+
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            required
-            autoComplete="email"
-            className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm text-ink placeholder:text-mist-light focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber transition-all"
+            className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3 text-sm
+                       text-stone-900 placeholder:text-stone-400
+                       focus:outline-none focus:ring-2 focus:ring-stone-100
+                       focus:border-stone-400 transition"
           />
         </div>
 
-        {/* Password field */}
+        {/* Password */}
         {mode === "password" && (
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-ink-soft tracking-wide uppercase">
-                Password
-              </label>
-            </div>
+            <label className="block text-[11px] font-semibold text-stone-500 tracking-[0.14em] uppercase">
+              Password
+            </label>
+
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
-                required
-                autoComplete="current-password"
-                className="w-full bg-surface border border-border rounded-xl px-4 py-3 pr-11 text-sm text-ink placeholder:text-mist-light focus:outline-none focus:ring-2 focus:ring-amber/30 focus:border-amber transition-all"
+                placeholder="••••••••"
+                className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3 pr-11 text-sm
+                           text-stone-900 placeholder:text-stone-400
+                           focus:outline-none focus:ring-2 focus:ring-stone-100
+                           focus:border-stone-400 transition"
               />
+
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-mist hover:text-ink transition-colors p-1"
-                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 transition p-1"
               >
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
@@ -166,7 +207,7 @@ export default function LoginPage() {
 
         {/* Error */}
         {error && (
-          <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
+          <div className="text-xs text-red-700 bg-red-50/50 border border-red-100 rounded-2xl px-4 py-3">
             {error}
           </div>
         )}
@@ -175,26 +216,37 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading || !email || (mode === "password" && !password)}
-          className="w-full flex items-center justify-center gap-2 bg-ink text-surface font-semibold py-3 px-4 rounded-xl hover:bg-ink-soft transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2
+                     bg-stone-900 text-stone-50 font-medium
+                     py-3.5 px-4 rounded-2xl
+                     transition-all
+                     hover:bg-stone-800
+                     active:scale-[0.98]
+                     disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {loading ? (
             <Loader2 size={16} className="animate-spin" />
           ) : (
             <>
-              {mode === "password" ? "Sign in" : "Send magic link"}
+              {mode === "password"
+                ? fromUpload
+                  ? "Sign in & continue"
+                  : "Sign in"
+                : "Send link"}
               <ArrowRight size={14} />
             </>
           )}
         </button>
       </form>
 
-      <p className="text-center text-xs text-mist mt-6">
+      {/* Footer */}
+      <p className="text-center text-xs text-stone-500 mt-7">
         No account?{" "}
         <Link
-          href="/signup"
-          className="text-amber hover:text-amber-dark font-medium transition-colors"
+          href={fromUpload ? "/signup?from=upload" : "/signup"}
+          className="text-stone-900 hover:underline font-medium transition"
         >
-          Create one free
+          Create one
         </Link>
       </p>
     </div>
