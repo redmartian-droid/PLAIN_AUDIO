@@ -415,7 +415,22 @@ export async function POST(request: NextRequest) {
 
     // ─── Direct external URL: async webhook (for large files / long audio) ────
     if (url) {
-      const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/deepgram?record_id=${record.id}&user_id=${user.id}`;
+      // Compute base URL: prefer Vercel's auto-set VERCEL_URL, then APP_BASE_URL
+      const BASE_URL = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : process.env.APP_BASE_URL;
+
+      if (!BASE_URL) {
+        console.error(
+          "BASE_URL not configured (missing VERCEL_URL and APP_BASE_URL)",
+        );
+        return NextResponse.json(
+          { error: "Server configuration error" },
+          { status: 500 },
+        );
+      }
+
+      const callbackUrl = `${BASE_URL}/api/webhooks/deepgram?record_id=${record.id}&user_id=${user.id}`;
       console.log("Direct URL:", url);
       console.log("Callback URL:", callbackUrl);
 
