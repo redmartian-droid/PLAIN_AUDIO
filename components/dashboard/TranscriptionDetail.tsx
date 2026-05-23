@@ -6,27 +6,23 @@ import React, {
   useRef,
   useCallback,
   useMemo,
+  useContext,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   AlignLeft,
   Users,
-  Play,
-  Pause,
-  Pencil,
-  Download,
-  Trash2,
-  FolderOpen,
-  FileText,
   Check,
   X,
   AlertTriangle,
   Clock,
   BookOpen,
   RotateCcw,
+  FolderOpen,
 } from "lucide-react";
 import { formatRelativeTime, formatDuration, cn } from "@/lib/utils";
-import { ExportButtons } from "@/components/dashboard/ExportButtons";
+import { Toolbar } from "@/components/dashboard/transcription-detail/Toolbar";
+import { Player } from "@/components/dashboard/transcription-detail/Player";
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
 const B = "#D63558";
@@ -140,29 +136,43 @@ function StatStrip({
   segments?: Segment[];
   created_at: string;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const readingMins = word_count ? Math.ceil(word_count / 200) : null;
   const speakerCount = getSpeakerCount(segments);
 
-  const chips: { icon?: React.ElementType; label: string }[] = [
+  const chips: {
+    icon?: React.ElementType;
+    label: string;
+    secondary?: boolean;
+  }[] = [
     { icon: Clock, label: formatRelativeTime(created_at) },
     ...(duration_seconds
       ? [{ icon: Clock, label: formatDuration(duration_seconds) }]
       : []),
     ...(word_count
-      ? [{ icon: AlignLeft, label: `${word_count.toLocaleString()} words` }]
+      ? [
+          {
+            icon: AlignLeft,
+            label: `${word_count.toLocaleString()} words`,
+            secondary: true,
+          },
+        ]
       : []),
     ...(readingMins
-      ? [{ icon: BookOpen, label: `~${readingMins} min read` }]
+      ? [{ icon: BookOpen, label: `~${readingMins} min read`, secondary: true }]
       : []),
-    ...(language ? [{ label: language.toUpperCase() }] : []),
+    ...(language ? [{ label: language.toUpperCase(), secondary: true }] : []),
     ...(speakerCount >= 2
-      ? [{ icon: Users, label: `${speakerCount} speakers` }]
+      ? [{ icon: Users, label: `${speakerCount} speakers`, secondary: true }]
       : []),
   ];
 
+  const primary = chips.filter((c) => !c.secondary);
+  const secondary = chips.filter((c) => c.secondary);
+
   return (
     <div className="flex items-center flex-wrap gap-1.5">
-      {chips.map((chip, i) => {
+      {primary.map((chip, i) => {
         const Icon = chip.icon;
         return (
           <span
@@ -181,6 +191,46 @@ function StatStrip({
           </span>
         );
       })}
+
+      {secondary.length > 0 && (
+        <>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="md:hidden inline-flex items-center gap-1 px-2 py-[3px] rounded-md transition-colors active:scale-95"
+            style={{
+              background: "#F0EEEB",
+              ...fontMono,
+              fontSize: 10.5,
+              color: "#888581",
+              letterSpacing: "0.03em",
+            }}
+            aria-label={expanded ? "Show fewer details" : "Show more details"}
+          >
+            {expanded ? "Less" : `+${secondary.length}`}
+          </button>
+          {(expanded ||
+            (typeof window !== "undefined" && window.innerWidth >= 768)) &&
+            secondary.map((chip, i) => {
+              const Icon = chip.icon;
+              return (
+                <span
+                  key={`sec-${i}`}
+                  className="inline-flex items-center gap-1 px-2 py-[3px] rounded-md"
+                  style={{
+                    background: "#F0EEEB",
+                    ...fontMono,
+                    fontSize: 10.5,
+                    color: "#888581",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  {Icon && <Icon size={10} strokeWidth={2} aria-hidden />}
+                  {chip.label}
+                </span>
+              );
+            })}
+        </>
+      )}
     </div>
   );
 }
@@ -201,294 +251,6 @@ function StatusSignal({ status }: { status: string }) {
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${entry.dot}`} />
       <span>{entry.label}</span>
     </span>
-  );
-}
-
-// ─── Toolbar Divider ──────────────────────────────────────────────────────────
-
-function ToolbarDivider() {
-  return (
-    <span
-      className="w-px h-4 rounded-full flex-shrink-0"
-      style={{ background: "#E2E0DB" }}
-      aria-hidden
-    />
-  );
-}
-
-// ─── Toolbar Button ───────────────────────────────────────────────────────────
-
-function ToolbarBtn({
-  onClick,
-  disabled,
-  label,
-  danger,
-  children,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  label: string;
-  danger?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      className={cn(
-        "w-8 h-8 flex items-center justify-center rounded-lg border text-muted-foreground/60",
-        "[transition:background-color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1),border-color_150ms_ease,color_150ms_ease]",
-        "active:scale-90",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        danger
-          ? [
-              "border-border/40",
-              "hover:bg-red-50 hover:text-red-600 hover:border-red-200",
-              "focus-visible:ring-red-300",
-            ]
-          : [
-              "border-border/40",
-              "hover:bg-[#F0EEEB] hover:text-foreground hover:border-[#E2E0DB]",
-              "focus-visible:ring-[#D63558]/40",
-            ],
-        disabled && "opacity-40 cursor-not-allowed pointer-events-none",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-// ─── Floating Audio Player ────────────────────────────────────────────────────
-
-const BAR_COUNT = 80;
-const BAR_W = 2;
-const BAR_GAP = 1.5;
-const BAR_TOTAL_W = BAR_COUNT * (BAR_W + BAR_GAP);
-const WAVEFORM_H = 40;
-
-function buildFakeWaveform(): number[] {
-  return Array.from({ length: BAR_COUNT }, (_, i) => {
-    const t = i / BAR_COUNT;
-    return Math.max(
-      0.08,
-      0.5 +
-        0.35 * Math.sin(t * Math.PI * 7) +
-        0.15 * Math.sin(t * Math.PI * 19 + 1) +
-        0.1 * Math.sin(t * Math.PI * 41 + 2),
-    );
-  });
-}
-
-function AudioPlayer({
-  src,
-  onTimeUpdate,
-  seekRef,
-}: {
-  src: string;
-  onTimeUpdate: (time: number) => void;
-  seekRef: React.MutableRefObject<((time: number) => void) | null>;
-}) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [waveform, setWaveform] = useState<number[]>(buildFakeWaveform);
-
-  useEffect(() => {
-    if (!src) return;
-    let cancelled = false;
-    async function decode() {
-      try {
-        const res = await fetch(src);
-        const buf = await res.arrayBuffer();
-        if (cancelled) return;
-        const ctx = new AudioContext();
-        const audioBuf = await ctx.decodeAudioData(buf);
-        if (cancelled) return;
-        const data = audioBuf.getChannelData(0);
-        const blockSize = Math.floor(data.length / BAR_COUNT);
-        const bars: number[] = [];
-        for (let i = 0; i < BAR_COUNT; i++) {
-          let peak = 0;
-          const start = i * blockSize;
-          for (let j = 0; j < blockSize; j++) {
-            peak = Math.max(peak, Math.abs(data[start + j]));
-          }
-          bars.push(peak);
-        }
-        const max = Math.max(...bars, 0.001);
-        setWaveform(bars.map((v) => Math.max(0.06, v / max)));
-        await ctx.close();
-      } catch {
-        // keep shaped fake waveform
-      }
-    }
-    decode();
-    return () => {
-      cancelled = true;
-    };
-  }, [src]);
-
-  useEffect(() => {
-    seekRef.current = (time: number) => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.currentTime = time;
-      if (!isPlaying) audio.play().catch(() => {});
-    };
-  }, [seekRef, isPlaying]);
-
-  const togglePlay = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) audio.pause();
-    else audio.play().catch(() => {});
-  }, [isPlaying]);
-
-  const handleWaveformClick = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
-      const audio = audioRef.current;
-      if (!audio || !duration) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      const ratio = (e.clientX - rect.left) / rect.width;
-      audio.currentTime = Math.max(0, Math.min(1, ratio)) * duration;
-    },
-    [duration],
-  );
-
-  const progress = duration > 0 ? currentTime / duration : 0;
-  const playheadX = progress * BAR_TOTAL_W;
-
-  return (
-    <div
-      className="flex items-center gap-4 px-4 py-3 rounded-2xl border"
-      style={{
-        background: "rgba(255,255,255,0.88)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        borderColor: "#E2E0DB",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04)",
-      }}
-    >
-      <audio
-        ref={audioRef}
-        src={src}
-        preload="metadata"
-        onTimeUpdate={(e) => {
-          const t = e.currentTarget.currentTime;
-          setCurrentTime(t);
-          onTimeUpdate(t);
-        }}
-        onDurationChange={(e) => setDuration(e.currentTarget.duration)}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => {
-          setIsPlaying(false);
-          setCurrentTime(0);
-          onTimeUpdate(0);
-        }}
-      />
-
-      <button
-        onClick={togglePlay}
-        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-opacity hover:opacity-80 active:scale-95"
-        style={{ background: B, color: "#fff" }}
-        aria-label={isPlaying ? "Pause" : "Play"}
-      >
-        {isPlaying ? (
-          <Pause size={14} strokeWidth={2.5} />
-        ) : (
-          <Play size={14} strokeWidth={2.5} className="translate-x-px" />
-        )}
-      </button>
-
-      <div className="flex-1 min-w-0">
-        <svg
-          viewBox={`0 0 ${BAR_TOTAL_W} ${WAVEFORM_H}`}
-          preserveAspectRatio="none"
-          className="w-full cursor-pointer"
-          style={{ height: WAVEFORM_H }}
-          onClick={handleWaveformClick}
-          aria-label="Seek audio"
-        >
-          <defs>
-            <clipPath id="cp-played-player">
-              <rect x={0} y={0} width={playheadX} height={WAVEFORM_H} />
-            </clipPath>
-            <clipPath id="cp-unplayed-player">
-              <rect
-                x={playheadX}
-                y={0}
-                width={BAR_TOTAL_W}
-                height={WAVEFORM_H}
-              />
-            </clipPath>
-          </defs>
-
-          {/* Unplayed */}
-          <g clipPath="url(#cp-unplayed-player)" style={{ opacity: 0.15 }}>
-            {waveform.map((amp, i) => {
-              const x = i * (BAR_W + BAR_GAP);
-              const barH = Math.max(2, amp * (WAVEFORM_H - 4));
-              return (
-                <rect
-                  key={`u-${i}`}
-                  x={x}
-                  y={(WAVEFORM_H - barH) / 2}
-                  width={BAR_W}
-                  height={barH}
-                  rx={BAR_W / 2}
-                  fill="currentColor"
-                />
-              );
-            })}
-          </g>
-
-          {/* Played — brand red */}
-          <g clipPath="url(#cp-played-player)">
-            {waveform.map((amp, i) => {
-              const x = i * (BAR_W + BAR_GAP);
-              const barH = Math.max(2, amp * (WAVEFORM_H - 4));
-              return (
-                <rect
-                  key={`p-${i}`}
-                  x={x}
-                  y={(WAVEFORM_H - barH) / 2}
-                  width={BAR_W}
-                  height={barH}
-                  rx={BAR_W / 2}
-                  fill={B}
-                />
-              );
-            })}
-          </g>
-
-          {/* Playhead */}
-          {duration > 0 && (
-            <rect
-              x={playheadX - 0.75}
-              y={0}
-              width={1.5}
-              height={WAVEFORM_H}
-              rx={0.75}
-              fill={B}
-              opacity={0.7}
-            />
-          )}
-        </svg>
-      </div>
-
-      <span
-        className="flex-shrink-0 tabular-nums"
-        style={{ ...fontMono, fontSize: 11, color: "#AAA8A4" }}
-      >
-        {shortTimestamp(currentTime)}
-        <span className="opacity-40 mx-0.5">/</span>
-        {shortTimestamp(duration)}
-      </span>
-    </div>
   );
 }
 
@@ -561,21 +323,22 @@ function InlineTranscript({
               {group.speaker}
             </p>
           )}
-          <p className="text-sm text-muted-foreground leading-[1.85] max-w-prose">
+          <p className="text-sm md:text-[15px] text-muted-foreground leading-[1.85] max-w-prose">
             {group.segments.map((seg, si) => {
               const isActive = activeTime >= seg.start && activeTime < seg.end;
               return (
                 <span key={si} ref={isActive ? activeSegRef : null}>
-                  <span className="text-[11px] font-mono text-muted-foreground/30 mr-1 select-none">
+                  <span className="text-xs font-mono text-muted-foreground/30 mr-1 select-none">
                     ({shortTimestamp(seg.start)})
                   </span>
                   <span
                     onClick={() => handleSeek(seg.start)}
-                    className={`cursor-pointer rounded px-0.5 -mx-0.5 transition-colors duration-150 ${
+                    className={cn(
+                      "cursor-pointer rounded px-1.5 py-0.5 -mx-1.5 transition-colors duration-150",
                       isActive
                         ? "bg-foreground/10 text-foreground"
-                        : "hover:bg-muted-foreground/10"
-                    }`}
+                        : "hover:bg-muted-foreground/10 active:bg-foreground/5",
+                    )}
                   >
                     {seg.text}
                   </span>{" "}
@@ -596,7 +359,10 @@ function PlainTranscript({ text }: { text: string }) {
     <div className="space-y-4 max-w-prose">
       {text.split("\n").map((p, i) =>
         p.trim() ? (
-          <p key={i} className="text-sm text-muted-foreground leading-[1.85]">
+          <p
+            key={i}
+            className="text-sm md:text-[15px] text-muted-foreground leading-[1.85]"
+          >
             {p}
           </p>
         ) : null,
@@ -616,7 +382,6 @@ function ProcessingState({ status }: { status: string }) {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-5 py-16">
-      {/* Animated bars — mirrors the logo waveform */}
       <span
         className="inline-flex items-end gap-[3px]"
         aria-hidden
@@ -728,70 +493,174 @@ function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)" }}
-    >
+    <>
+      {/* Mobile: Bottom Sheet */}
       <div
-        className="w-full max-w-sm rounded-xl overflow-hidden"
+        className="fixed inset-0 z-[60] md:hidden"
+        style={{
+          background: "rgba(0,0,0,0.25)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? "auto" : "none",
+          transition: "opacity 320ms ease",
+        }}
+        onClick={onCancel}
+        aria-hidden
+      />
+
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[60] md:hidden flex flex-col"
         style={{
           background: "#F8F7F4",
-          border: "1px solid #E2E0DB",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
+          borderRadius: "20px 20px 0 0",
+          borderTop: "1px solid #E2E0DB",
+          transform: open ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 400ms cubic-bezier(0.32,0.72,0,1)",
+          paddingBottom: "env(safe-area-inset-bottom, 16px)",
+          boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
         }}
+        role="dialog"
+        aria-modal="true"
       >
-        {/* Header */}
-        <div className="flex items-start gap-3 px-5 pt-5 pb-4">
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-2 shrink-0">
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: "#FEE2E2" }}
-          >
-            <AlertTriangle size={16} style={{ color: "#DC2626" }} />
-          </div>
-          <div className="pt-0.5">
-            <h3
-              className="text-[14px] font-semibold text-foreground leading-snug"
-              style={{ ...fontSyne }}
-            >
-              {title}
-            </h3>
-            <p
-              className="text-[12px] leading-relaxed mt-1"
-              style={{ color: "#888581" }}
-            >
-              {description}
-            </p>
-          </div>
+            className="w-9 h-1 rounded-full"
+            style={{ background: "#E2E0DB" }}
+          />
         </div>
 
-        {/* Actions */}
+        {/* Content */}
         <div
-          className="flex items-center justify-end gap-2 px-5 py-3"
-          style={{ background: "#F0EEEB", borderTop: "1px solid #E2E0DB" }}
+          className="px-5 pt-2 pb-6"
+          style={{
+            opacity: open ? 1 : 0,
+            transform: open ? "translateY(0)" : "translateY(10px)",
+            transition: open
+              ? "opacity 300ms ease 80ms, transform 300ms cubic-bezier(0.32,0.72,0,1) 80ms"
+              : "opacity 100ms ease, transform 100ms ease",
+          }}
         >
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors hover:bg-[#E8E5E1] active:scale-[.97]"
-            style={{ color: "#6B6966", ...fontMono, letterSpacing: "0.04em" }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-white transition-colors hover:bg-red-700 active:scale-[.97]"
-            style={{
-              background: "#DC2626",
-              ...fontMono,
-              letterSpacing: "0.04em",
-            }}
-          >
-            Delete
-          </button>
+          <div className="flex items-start gap-3 mb-6">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: "#FEE2E2" }}
+            >
+              <AlertTriangle size={18} style={{ color: "#DC2626" }} />
+            </div>
+            <div>
+              <h3
+                className="text-[15px] font-semibold text-foreground"
+                style={{ ...fontSyne }}
+              >
+                {title}
+              </h3>
+              <p
+                className="text-[13px] leading-relaxed mt-1"
+                style={{ color: "#888581" }}
+              >
+                {description}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => {
+                onCancel();
+                onConfirm();
+              }}
+              className="w-full py-3.5 rounded-xl text-[15px] font-medium text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+              style={{ background: "#DC2626", ...fontMono }}
+            >
+              Delete
+            </button>
+            <button
+              onClick={onCancel}
+              className="w-full py-3.5 rounded-xl text-[15px] font-medium transition-colors hover:bg-[#F0EEEB] active:scale-[0.98]"
+              style={{ color: "#6B6966", ...fontMono }}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Desktop: Centered Modal */}
+      <div
+        className="hidden md:flex fixed inset-0 z-[60] items-center justify-center p-4"
+        style={{
+          background: "rgba(0,0,0,0.35)",
+          backdropFilter: "blur(4px)",
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? "auto" : "none",
+          transition: "opacity 200ms ease",
+        }}
+      >
+        <div
+          className="w-full max-w-sm rounded-xl overflow-hidden"
+          style={{
+            background: "#F8F7F4",
+            border: "1px solid #E2E0DB",
+            boxShadow:
+              "0 12px 40px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
+            transform: open ? "scale(1)" : "scale(0.96)",
+            opacity: open ? 1 : 0,
+            transition:
+              "transform 200ms cubic-bezier(0.32,0.72,0,1), opacity 200ms ease",
+          }}
+        >
+          <div className="flex items-start gap-3 px-5 pt-5 pb-4">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: "#FEE2E2" }}
+            >
+              <AlertTriangle size={16} style={{ color: "#DC2626" }} />
+            </div>
+            <div className="pt-0.5">
+              <h3
+                className="text-[14px] font-semibold text-foreground leading-snug"
+                style={{ ...fontSyne }}
+              >
+                {title}
+              </h3>
+              <p
+                className="text-[12px] leading-relaxed mt-1"
+                style={{ color: "#888581" }}
+              >
+                {description}
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="flex items-center justify-end gap-2 px-5 py-3"
+            style={{ background: "#F0EEEB", borderTop: "1px solid #E2E0DB" }}
+          >
+            <button
+              onClick={onCancel}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors hover:bg-[#E8E5E1] active:scale-[.97]"
+              style={{ color: "#6B6966", ...fontMono, letterSpacing: "0.04em" }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-white transition-colors hover:bg-red-700 active:scale-[.97]"
+              style={{
+                background: "#DC2626",
+                ...fontMono,
+                letterSpacing: "0.04em",
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -820,77 +689,193 @@ function MoveDialog({
       .then(({ data }) => setFolders(data || []));
   }, [open]);
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)" }}
-    >
+    <>
+      {/* Mobile: Bottom Sheet */}
       <div
-        className="w-full max-w-sm rounded-xl overflow-hidden"
+        className="fixed inset-0 z-[60] md:hidden"
+        style={{
+          background: "rgba(0,0,0,0.25)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? "auto" : "none",
+          transition: "opacity 320ms ease",
+        }}
+        onClick={onClose}
+        aria-hidden
+      />
+
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[60] md:hidden flex flex-col max-h-[70vh]"
         style={{
           background: "#F8F7F4",
-          border: "1px solid #E2E0DB",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
+          borderRadius: "20px 20px 0 0",
+          borderTop: "1px solid #E2E0DB",
+          transform: open ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 400ms cubic-bezier(0.32,0.72,0,1)",
+          paddingBottom: "env(safe-area-inset-bottom, 16px)",
+          boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
         }}
+        role="dialog"
+        aria-modal="true"
       >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-2 shrink-0">
+          <div
+            className="w-9 h-1 rounded-full"
+            style={{ background: "#E2E0DB" }}
+          />
+        </div>
+
         {/* Header */}
         <div
-          className="flex items-center justify-between px-4 py-3"
+          className="flex items-center justify-between px-5 pt-2 pb-3"
           style={{ borderBottom: "1px solid #E2E0DB" }}
         >
           <h3
-            className="text-[13px] font-semibold text-foreground"
+            className="text-[15px] font-semibold text-foreground"
             style={fontSyne}
           >
             Move to folder
           </h3>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-[#E8E5E1] text-muted-foreground"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#E8E5E1] text-muted-foreground"
           >
-            <X size={13} />
+            <X size={14} />
           </button>
         </div>
 
         {/* Folder list */}
-        <div className="p-2 max-h-64 overflow-y-auto">
+        <div className="overflow-y-auto p-2">
           {folders.length === 0 && (
             <p
-              className="text-[12px] text-center py-6"
+              className="text-[13px] text-center py-8"
               style={{ color: "#AAA8A4", ...fontMono }}
             >
               No folders yet.
             </p>
           )}
-          {folders.map((folder) => {
+          {folders.map((folder, i) => {
             const isCurrent = folder.id === currentFolderId;
             return (
               <button
                 key={folder.id}
                 onClick={() => onMove(folder.id)}
                 className={cn(
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-left transition-colors",
+                  "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98]",
                   isCurrent ? "bg-[#F0EEEB] font-medium" : "hover:bg-[#F0EEEB]",
                 )}
+                style={{
+                  opacity: open ? 1 : 0,
+                  transform: open ? "translateY(0)" : "translateY(10px)",
+                  transition: open
+                    ? `opacity 300ms ease ${80 + i * 55}ms, transform 300ms cubic-bezier(0.32,0.72,0,1) ${80 + i * 55}ms`
+                    : "opacity 100ms ease, transform 100ms ease",
+                }}
               >
                 <FolderOpen
-                  size={13}
+                  size={16}
                   aria-hidden
                   style={{ color: isCurrent ? B : undefined }}
                   className={isCurrent ? undefined : "text-muted-foreground/50"}
                 />
-                <span className="flex-1 truncate">{folder.name}</span>
+                <span className="flex-1 truncate text-[15px]">
+                  {folder.name}
+                </span>
                 {isCurrent && (
-                  <Check size={12} style={{ color: B }} aria-hidden />
+                  <Check size={14} style={{ color: B }} aria-hidden />
                 )}
               </button>
             );
           })}
         </div>
       </div>
-    </div>
+
+      {/* Desktop: Centered Modal */}
+      <div
+        className="hidden md:flex fixed inset-0 z-[60] items-center justify-center p-4"
+        style={{
+          background: "rgba(0,0,0,0.35)",
+          backdropFilter: "blur(4px)",
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? "auto" : "none",
+          transition: "opacity 200ms ease",
+        }}
+      >
+        <div
+          className="w-full max-w-sm rounded-xl overflow-hidden"
+          style={{
+            background: "#F8F7F4",
+            border: "1px solid #E2E0DB",
+            boxShadow:
+              "0 12px 40px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
+            transform: open ? "scale(1)" : "scale(0.96)",
+            opacity: open ? 1 : 0,
+            transition:
+              "transform 200ms cubic-bezier(0.32,0.72,0,1), opacity 200ms ease",
+          }}
+        >
+          <div
+            className="flex items-center justify-between px-4 py-3"
+            style={{ borderBottom: "1px solid #E2E0DB" }}
+          >
+            <h3
+              className="text-[13px] font-semibold text-foreground"
+              style={fontSyne}
+            >
+              Move to folder
+            </h3>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-[#E8E5E1] text-muted-foreground"
+            >
+              <X size={13} />
+            </button>
+          </div>
+
+          <div className="p-2 max-h-64 overflow-y-auto">
+            {folders.length === 0 && (
+              <p
+                className="text-[12px] text-center py-6"
+                style={{ color: "#AAA8A4", ...fontMono }}
+              >
+                No folders yet.
+              </p>
+            )}
+            {folders.map((folder) => {
+              const isCurrent = folder.id === currentFolderId;
+              return (
+                <button
+                  key={folder.id}
+                  onClick={() => onMove(folder.id)}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-left transition-colors",
+                    isCurrent
+                      ? "bg-[#F0EEEB] font-medium"
+                      : "hover:bg-[#F0EEEB]",
+                  )}
+                >
+                  <FolderOpen
+                    size={13}
+                    aria-hidden
+                    style={{ color: isCurrent ? B : undefined }}
+                    className={
+                      isCurrent ? undefined : "text-muted-foreground/50"
+                    }
+                  />
+                  <span className="flex-1 truncate">{folder.name}</span>
+                  {isCurrent && (
+                    <Check size={12} style={{ color: B }} aria-hidden />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -912,6 +897,7 @@ export function TranscriptionDetail({
   const [textDraft, setTextDraft] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
 
   useEffect(() => {
     setTitleDraft(transcription.title);
@@ -1110,66 +1096,24 @@ export function TranscriptionDetail({
           )}
         </div>
 
-        {/* Toolbar — grouped with dividers */}
+        {/* Toolbar — responsive grouping */}
         {showResults && (
-          <div className="flex-shrink-0 flex items-center gap-2 pt-0.5">
-            <div className="flex items-center gap-1">
-              {/* Group 1: content edits */}
-              <ToolbarBtn
-                onClick={() => setIsEditingText(true)}
-                label="Edit transcript"
-              >
-                <FileText size={13} />
-              </ToolbarBtn>
-              <ToolbarBtn
-                onClick={() => setIsEditingTitle(true)}
-                label="Rename"
-              >
-                <Pencil size={13} />
-              </ToolbarBtn>
-
-              <ToolbarDivider />
-
-              {/* Group 2: file */}
-              <ToolbarBtn
-                onClick={handleDownloadAudio}
-                disabled={!audioUrl}
-                label="Download audio"
-              >
-                <Download size={13} />
-              </ToolbarBtn>
-
-              <ToolbarDivider />
-
-              {/* Group 3: organisation */}
-              <ToolbarBtn
-                onClick={() => setShowMoveDialog(true)}
-                label="Move to folder"
-              >
-                <FolderOpen size={13} />
-              </ToolbarBtn>
-
-              <ToolbarDivider />
-
-              {/* Group 4: destructive */}
-              <ToolbarBtn
-                onClick={() => setShowDeleteDialog(true)}
-                label="Delete"
-                danger
-              >
-                <Trash2 size={13} />
-              </ToolbarBtn>
-            </div>
-
-            <ExportButtons
-              transcription={{
-                id: transcription.id,
-                title,
-                full_text: activeText,
-                segments: activeSegments ?? null,
-              }}
-            />
-          </div>
+          <Toolbar
+            onEditText={() => setIsEditingText(true)}
+            onRename={() => setIsEditingTitle(true)}
+            onDownload={handleDownloadAudio}
+            canDownload={!!audioUrl}
+            onMoveToFolder={() => setShowMoveDialog(true)}
+            onDelete={() => setShowDeleteDialog(true)}
+            showMobileActions={showMobileActions}
+            onMobileActionsChange={setShowMobileActions}
+            transcription={{
+              id: transcription.id,
+              title,
+              full_text: activeText,
+              segments: activeSegments ?? null,
+            }}
+          />
         )}
       </div>
 
@@ -1237,7 +1181,7 @@ export function TranscriptionDetail({
 
             {/* Transcript area */}
             <div className="relative flex-1 min-h-0">
-              {/* Top fade — taller for better masking */}
+              {/* Top fade */}
               <div
                 className="absolute top-0 inset-x-0 h-20 z-10 pointer-events-none"
                 style={{
@@ -1246,7 +1190,7 @@ export function TranscriptionDetail({
                 }}
               />
 
-              <div className="h-full overflow-y-auto py-6 pr-2 pb-28">
+              <div className="h-full overflow-y-auto py-6 pr-2">
                 {isEditingText ? (
                   <div className="h-full flex flex-col max-w-prose">
                     <textarea
@@ -1306,7 +1250,7 @@ export function TranscriptionDetail({
                 )}
               </div>
 
-              {/* Bottom fade — taller */}
+              {/* Bottom fade */}
               <div
                 className="absolute bottom-0 inset-x-0 h-20 z-10 pointer-events-none"
                 style={{
@@ -1319,18 +1263,13 @@ export function TranscriptionDetail({
         )}
       </div>
 
-      {/* ── Floating audio player ── */}
-      {audioUrl && showResults && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-6 z-50 pointer-events-none">
-          <div className="pointer-events-auto">
-            <AudioPlayer
-              src={audioUrl}
-              onTimeUpdate={setAudioTime}
-              seekRef={seekRef}
-            />
-          </div>
-        </div>
-      )}
+      {/* ── Audio Player ── */}
+      <Player
+        src={audioUrl}
+        onTimeUpdate={setAudioTime}
+        seekRef={seekRef}
+        visible={showResults && !showMobileActions}
+      />
 
       {/* ── Dialogs ── */}
       <ConfirmDialog

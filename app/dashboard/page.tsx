@@ -7,6 +7,7 @@ import { FolderIcon } from "@/components/ui/folder-icon";
 import { NewTranscriptionButton } from "@/components/dashboard/NewTranscriptionButton";
 import { RecentTranscriptionsList } from "@/components/dashboard/RecentTranscriptionsList";
 import { DashboardResume } from "@/components/dashboard/DashboardResume";
+import { cn } from "@/lib/utils";
 
 const FREE_LIMIT = 5;
 const B = "#D63558";
@@ -121,16 +122,16 @@ export default async function DashboardPage() {
 
   return (
     <DashboardResume>
-      <div className="flex flex-col h-full p-8 max-w-5xl mx-auto w-full">
+      <div className="flex flex-col h-full pt-14 sm:pt-8 px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 max-w-5xl mx-auto w-full">
         {/* ── Greeting ── */}
-        <div className="mb-10 animate-fade-up flex items-start justify-between shrink-0">
-          <div>
+        <div className="mb-6 sm:mb-10 animate-fade-up flex flex-row items-start justify-between gap-4 shrink-0">
+          <div className="min-w-0">
             <h1
               className="mb-1.5"
               style={{
                 ...fontSyne,
                 fontWeight: 700,
-                fontSize: "clamp(1.8rem, 3vw, 2.5rem)",
+                fontSize: "clamp(1.25rem, 4.5vw, 2.5rem)",
                 letterSpacing: "-0.03em",
                 lineHeight: 1.05,
                 color: "#0D0D0D",
@@ -151,13 +152,15 @@ export default async function DashboardPage() {
                 : "Upload your first file to get started."}
             </p>
           </div>
-          <NewTranscriptionButton />
+          <div className="shrink-0">
+            <NewTranscriptionButton />
+          </div>
         </div>
 
         {/* ── Free tier usage ── */}
         {isFree && (
           <div
-            className="mb-8 animate-fade-up rounded-xl p-5 shrink-0"
+            className="mb-6 sm:mb-10 animate-fade-up rounded-xl p-4 sm:p-5 shrink-0"
             style={{ background: "#fff", border: "1px solid #E2E0DB" }}
           >
             <div className="flex items-center justify-between mb-3">
@@ -216,28 +219,68 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* ── Folder carousel ── */}
+        {/* ── Folders ── */}
         {hasFolders && (
-          <div className="mb-10 animate-fade-up [animation-delay:100ms] shrink-0">
+          <div className="mb-6 sm:mb-10 animate-fade-up [animation-delay:100ms] shrink-0">
             <SectionEyebrow
               label="Folders"
               href="/dashboard/folders"
               linkLabel="View all"
             />
-            <div className="flex gap-6 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
-              {recentFolders!.map((folder) => (
+
+            {/* Mobile: compact iOS-style list rows */}
+            <div className="sm:hidden flex flex-col">
+              {recentFolders!.map((folder, i) => (
                 <Link
                   key={folder.id}
                   href={`/dashboard/folders/${folder.id}`}
-                  className="group flex flex-col items-center text-center relative snap-start shrink-0 w-24"
+                  className={cn(
+                    "group flex items-center gap-3 min-h-[44px] py-2.5",
+                    "active:opacity-60 transition-opacity",
+                    i !== recentFolders!.length - 1 &&
+                      "border-b border-border/40",
+                  )}
                 >
-                  <div className="relative mb-1.5 transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
+                  <FolderIcon className="w-5 h-5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="text-[13px] font-medium truncate"
+                      style={{ color: "#0D0D0D" }}
+                    >
+                      {folder.name}
+                    </p>
+                    <p
+                      className="text-[11px] mt-0.5"
+                      style={{ ...fontMono, color: "#AAA8A4" }}
+                    >
+                      {formatRelativeTime(folder.created_at)}
+                    </p>
+                  </div>
+                  <ChevronRight
+                    size={14}
+                    className="shrink-0 text-muted-foreground/30"
+                  />
+                </Link>
+              ))}
+            </div>
+
+            {/* Desktop: horizontal scroll carousel */}
+            <div className="hidden sm:flex gap-6 overflow-x-auto pb-3 -mx-1 px-1 snap-x snap-mandatory scrollbar-none">
+              {recentFolders!.map((folder, i) => (
+                <Link
+                  key={folder.id}
+                  href={`/dashboard/folders/${folder.id}`}
+                  className={cn(
+                    "group flex flex-col items-center text-center relative snap-start shrink-0 w-24",
+                    i === 0 && "snap-align-start",
+                  )}
+                >
+                  <div className="relative mb-1.5 transition-transform duration-200 group-active:scale-95 group-hover:scale-105">
                     <FolderIcon className="w-20 h-20 drop-shadow-sm" />
                   </div>
                   <p
-                    className="px-1 line-clamp-2 leading-tight"
+                    className="px-1 line-clamp-2 leading-tight text-[12px] min-h-[44px] flex items-center justify-center"
                     style={{
-                      fontSize: 12,
                       fontWeight: 500,
                       color: "#666",
                       lineHeight: 1.3,
@@ -268,9 +311,9 @@ export default async function DashboardPage() {
           )}
 
           {sortedRecent.length === 0 ? (
-            /* Empty state — matches landing page's stark bordered card language */
+            /* Empty state */
             <div
-              className="rounded-xl p-12 text-center"
+              className="rounded-xl p-5 sm:p-8 lg:p-12 text-center"
               style={{ border: "1.5px dashed #E2E0DB", background: "#fff" }}
             >
               <div

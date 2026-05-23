@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutGrid, Clock, Plus, FolderIcon } from "lucide-react";
+import { LayoutGrid, Clock, Plus, FolderIcon, PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewFolderModal } from "./NewFolderModal";
 
@@ -45,7 +45,6 @@ function ShortcutPill({ keys }: { keys: string }) {
   return (
     <span
       className={cn(
-        // Hidden by default, fades in on parent group hover
         "opacity-0 group-hover:opacity-100",
         "transition-opacity duration-150 ease-in-out",
         "hidden sm:inline-flex items-center px-1.5 py-0.5 rounded",
@@ -63,11 +62,10 @@ function ShortcutPill({ keys }: { keys: string }) {
 function navLinkClass(active: boolean) {
   return cn(
     "group",
-    "flex items-center justify-between w-full min-h-[34px] px-2.5 rounded-lg",
+    "flex items-center justify-between w-full px-2.5 rounded-lg",
+    "min-h-[44px] sm:min-h-[34px]",
     "text-[13px]",
-    // Smooth color + scale transitions; spring-like pop on release
     "[transition:background-color_150ms_ease,color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1),opacity_150ms_ease]",
-    // Pressed: step darker than hover — tactile without new hues
     "active:scale-[.98] active:bg-[#D63558]/[0.10]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558] focus-visible:ring-offset-2",
     active
@@ -80,6 +78,61 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="section-label px-2.5 mb-1.5">{children}</p>;
 }
 
+function LogoMark({ transcribing = false }: { transcribing?: boolean }) {
+  return (
+    <Link
+      href="/"
+      className="flex items-center gap-[3px] font-display text-[15px] font-bold tracking-[0.12em] leading-none"
+      style={{ color: "#D63558" }}
+    >
+      <span className="-mr-0.5">PLAI</span>
+      <AudioBars active={transcribing} />
+    </Link>
+  );
+}
+
+function AudioBars({
+  active = false,
+  className,
+}: {
+  active?: boolean;
+  className?: string;
+}) {
+  const bars: [string, string, string][] = [
+    ["100%", "0ms", "600ms"],
+    ["100%", "180ms", "500ms"],
+    ["18%", "80ms", "700ms"],
+    ["80%", "260ms", "550ms"],
+    ["18%", "140ms", "650ms"],
+  ];
+
+  return (
+    <span
+      className={cn("inline-flex items-center gap-[2.5px]", className)}
+      aria-hidden
+      style={{ height: 16 }}
+    >
+      {bars.map(([h, delay, duration], i) => (
+        <span
+          key={i}
+          className="rounded-full block origin-center"
+          style={{
+            width: 3.5,
+            height: h,
+            background: "#D63558",
+            animationName: active ? "waveBar" : undefined,
+            animationDuration: duration,
+            animationDelay: delay,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
+            animationDirection: "alternate",
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function Sidebar({
   plan = "free",
   dailyUsed = 0,
@@ -89,6 +142,7 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const usagePercent =
     dailyLimit === Infinity ? 0 : Math.min((dailyUsed / dailyLimit) * 100, 100);
@@ -98,9 +152,22 @@ export function Sidebar({
   const visibleFolders = folders.slice(0, FOLDER_CAP);
   const overflowCount = folders.length - FOLDER_CAP;
 
-  // ── Global shortcut listeners ─────────────────────────────
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const onToggle = () => setMobileOpen((v) => !v);
+    window.addEventListener("toggle-sidebar", onToggle);
+    return () => window.removeEventListener("toggle-sidebar", onToggle);
+  }, []);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+        return;
+      }
       const target = e.target as HTMLElement;
       if (
         target.tagName === "INPUT" ||
@@ -108,9 +175,7 @@ export function Sidebar({
         target.isContentEditable
       )
         return;
-
       if (!e.metaKey && !e.ctrlKey) return;
-
       const key = e.key.toLowerCase();
       const match = navItems.find((item) => item.shortcut?.endsWith(key));
       if (match) {
@@ -128,8 +193,44 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="sidebar w-56 shrink-0 flex flex-col h-full pt-8 pr-4">
-        <div className="flex-1 space-y-5">
+      {/* Overlay */}
+      {mobileOpen && (
+        <div
+          className="sm:hidden fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] transition-opacity"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={cn(
+          "fixed sm:static inset-y-0 left-0 z-50",
+          "w-[280px] sm:w-56 shrink-0",
+          "bg-[#F8F7F4] sm:bg-transparent",
+          "flex flex-col h-full",
+          "px-4 pt-0 sm:pl-0 sm:pr-4 sm:pt-8",
+          "transition-transform duration-300 ease-[cubic-bezier(.32,.72,.6,1)]",
+          mobileOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0",
+        )}
+        style={{ borderRight: "1px solid #E2E0DB" }}
+      >
+        {/* Mobile header — 52px to match <Header />, PanelLeft flipped to indicate open/close */}
+        <div className="sm:hidden flex items-center justify-between h-[52px] shrink-0 px-2.5">
+          <LogoMark />
+          <button
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "w-11 h-11 flex items-center justify-center rounded-xl -mr-1",
+              "text-muted-foreground hover:text-foreground",
+              "transition-colors active:bg-[#D63558]/10",
+            )}
+            aria-label="Close sidebar"
+          >
+            <PanelLeft size={18} strokeWidth={1.5} className="scale-x-[-1]" />
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-5 overflow-y-auto pt-14 sm:pt-0">
           {/* Shortcuts */}
           <div>
             <SectionLabel>shortcuts</SectionLabel>
@@ -229,7 +330,14 @@ export function Sidebar({
 
         {/* Usage */}
         {!isPro && (
-          <div className="mb-6 rounded-xl p-3 flex flex-col gap-2 bg-[#F0EEEB] border border-[#E2E0DB]">
+          <div
+            className="mt-4 rounded-xl p-3 flex flex-col gap-2"
+            style={{
+              background: "#F0EEEB",
+              border: "1px solid #E2E0DB",
+              marginBottom: "max(24px, env(safe-area-inset-bottom, 24px))",
+            }}
+          >
             <div className="flex items-center justify-between">
               <span className="section-label text-[#AAA8A4]">
                 {dailyUsed} of {dailyLimit} today

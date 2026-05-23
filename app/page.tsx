@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { LandingUploadZone } from "@/components/landing/LandingUploadZone";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { BlogPreview } from "@/components/landing/BlogPreview";
+import { FAQSection } from "@/components/landing/FAQSection";
 
 const USE_CASES = [
   {
@@ -217,35 +218,63 @@ export default async function HomePage() {
             Workflow
           </p>
 
-          <div className="grid md:grid-cols-3 gap-16">
-            {[
-              {
-                step: "01",
-                title: "Upload",
-                desc: "Drop an audio or video file into the platform.",
-              },
-              {
-                step: "02",
-                title: "Process",
-                desc: "We transcribe it using AI with timestamps and structure.",
-              },
-              {
-                step: "03",
-                title: "Export",
-                desc: "Download or copy your transcript instantly.",
-              },
-            ].map((s, i) => (
-              <div key={s.step} className="relative">
-                {i !== 2 && (
-                  <div className="hidden md:block absolute top-2 right-0 w-px h-full bg-[#f0f0f0] translate-x-8" />
-                )}
-                <p className="text-[10px] font-mono text-[#ddd] tracking-wider mb-6">
-                  {s.step}
-                </p>
-                <h3 className="text-lg font-normal mb-3">{s.title}</h3>
-                <p className="text-sm text-[#999] leading-[1.8]">{s.desc}</p>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-12 gap-16">
+            {/* Steps */}
+            <div className="md:col-span-7 divide-y divide-[#f5f5f5]">
+              {[
+                {
+                  step: "01",
+                  title: "Drop a file or paste a link",
+                  desc: "Upload an audio or video file directly, or paste a YouTube URL. Supported formats: MP3, MP4, WAV, M4A, OGG, and WebM. No converting needed.",
+                },
+                {
+                  step: "02",
+                  title: "Choose a model",
+                  desc: "Accurate is best for interviews, meetings, and anything with multiple speakers. Balanced is faster and works well for solo recordings or when you just need a quick draft.",
+                },
+                {
+                  step: "03",
+                  title: "Set your speaker count",
+                  desc: "Auto works in most cases. If you know exactly how many people are in the recording you can pin it — this helps the model label speakers more cleanly.",
+                },
+                {
+                  step: "04",
+                  title: "Wait about 30 seconds",
+                  desc: "The page updates automatically when your transcript is ready. No refreshing, no waiting around — just leave the tab open.",
+                },
+                {
+                  step: "05",
+                  title: "Read, search, and play back",
+                  desc: "Every line is linked to its timestamp. Click any sentence to jump straight to that moment in the audio. If there are multiple speakers, toggle the speaker view to see who said what.",
+                },
+                {
+                  step: "06",
+                  title: "Export in the format you need",
+                  desc: "Download as TXT for plain notes, SRT if you need subtitles, or DOC to drop straight into a doc or email.",
+                },
+              ].map((s) => (
+                <div key={s.step} className="py-10 first:pt-0 last:pb-0">
+                  <div className="flex items-baseline gap-6 mb-3">
+                    <span className="text-[10px] font-mono text-[#ddd] tracking-wider shrink-0">
+                      {s.step}
+                    </span>
+                    <h3 className="text-lg font-normal text-[#111]">
+                      {s.title}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-[#999] leading-[1.8] pl-12 max-w-sm">
+                    {s.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Sticky label */}
+            <div className="md:col-span-4 md:col-start-9 md:sticky md:top-32 self-start">
+              <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">
+                How it works
+              </h2>
+            </div>
           </div>
         </div>
       </section>
@@ -306,9 +335,12 @@ export default async function HomePage() {
 
       <BlogPreview />
 
-      {/* BANNER 2 */}
-      <section className="relative z-20 bg-white border-t border-[#f0f0f0] overflow-hidden">
-        <div className="whitespace-nowrap flex w-max gap-10 py-3 text-[10px] font-mono tracking-widest text-[#d0d0d0] animate-scroll-slow will-change-transform">
+      {/* FAQ */}
+      <FAQSection />
+
+      {/* BANNER 2 — pre-cta system state */}
+      <section className="border-t border-[#f0f0f0] overflow-hidden">
+        <div className="whitespace-nowrap flex gap-10 py-3 text-[10px] font-mono tracking-widest text-[#d0d0d0] animate-scroll-slow">
           {[...BANNER_2_ITEMS, ...BANNER_2_ITEMS].map((item, i) => (
             <span key={i} className="flex items-center gap-10 shrink-0">
               <span>{item}</span>

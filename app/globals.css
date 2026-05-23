@@ -6,8 +6,6 @@
 
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -104,6 +102,13 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /* Prevent iOS tap highlight color on interactive elements */
+  button,
+  a,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -311,6 +316,7 @@
   }
 }
 
+/* ─── Mobile utilities ─────────────────────────────────────── */
 @layer utilities {
   .scrollbar-hidden {
     scrollbar-width: none;
@@ -318,6 +324,34 @@
   }
   .scrollbar-hidden::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Alias used in newer components */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Prevent text selection on UI chrome during rapid taps */
+  .no-select {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Smooth momentum scrolling + snap for carousels */
+  .snap-x {
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+}
+
+/* iOS safe-area support for fixed bottom bars */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 

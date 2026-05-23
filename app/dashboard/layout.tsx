@@ -39,8 +39,8 @@ export default async function DashboardLayout({
         }}
       />
 
-      {/* Main content area with sidebar */}
-      <div className="dashboard-content">
+      {/* HIG-compliant margins: 16px iPhone / 24px iPad / 48px desktop */}
+      <div className="flex flex-1 overflow-hidden px-4 md:px-6 lg:px-12 pt-0">
         <Sidebar
           plan={profile?.plan || "free"}
           dailyUsed={profile?.daily_transcription_count || 0}

@@ -11,7 +11,7 @@ import {
 } from "./TranscriptionRow";
 import { BulkActionsBar } from "./BulkActionsBar";
 import { cn } from "@/lib/utils";
-import { useTranscriptionDelete } from "@/hooks/useTranscriptionDelete"; // NEW
+import { useTranscriptionDelete } from "@/hooks/useTranscriptionDelete";
 
 export function RecentTranscriptionsList({
   transcriptions,
@@ -49,7 +49,6 @@ export function RecentTranscriptionsList({
     updateFades();
   }, [transcriptions, updateFades]);
 
-  // ─── UPDATED: use shared hook ──────────────────────────────────────────
   async function handleBulkDelete() {
     if (!selected.size) return;
     await deleteTranscriptions([...selected]);
@@ -83,12 +82,20 @@ export function RecentTranscriptionsList({
       <div className="flex items-center gap-2.5 mb-2 px-1 shrink-0">
         <button
           onClick={() => toggleAll(allIds)}
-          aria-label={allSelected ? "Deselect all" : "Select all"}
+          aria-label={
+            allSelected
+              ? "Deselect all"
+              : selectionMode
+                ? "Select all"
+                : "Select"
+          }
           className={cn(
-            "flex items-center gap-2 text-xs transition-colors",
+            "flex items-center gap-2 min-h-[44px] px-1",
+            "text-xs transition-colors",
             selectionMode
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground",
+            "active:opacity-70",
           )}
         >
           <Checkbox checked={allSelected} indeterminate={someSelected} />
@@ -123,7 +130,10 @@ export function RecentTranscriptionsList({
         <div
           ref={scrollRef}
           onScroll={updateFades}
-          className="h-full overflow-y-auto pr-0.5 scrollbar-hidden"
+          className={cn(
+            "h-full overflow-y-auto pr-0.5 scrollbar-hidden",
+            count > 0 && "pb-24 sm:pb-0.5",
+          )}
         >
           <div className="space-y-1.5 py-0.5">
             {transcriptions.map((t) => (
@@ -150,13 +160,28 @@ export function RecentTranscriptionsList({
         />
       </div>
 
-      <BulkActionsBar
-        count={count}
-        onClear={clear}
-        onExport={handleBulkExport}
-        onMove={handleBulkMove}
-        onDelete={handleBulkDelete}
-      />
+      {/* Bulk actions — mobile bottom sheet, desktop inline */}
+      <div
+        className={cn(
+          "sm:relative",
+          count > 0
+            ? "fixed bottom-0 left-0 right-0 z-30 sm:static sm:z-auto translate-y-0"
+            : "fixed bottom-0 left-0 right-0 z-30 sm:static translate-y-full sm:translate-y-0",
+          "transition-transform duration-300 ease-[cubic-bezier(.32,.72,.6,1)]",
+          "bg-[#F8F7F4]/95 backdrop-blur-md border-t border-[#E2E0DB] sm:bg-transparent sm:backdrop-blur-none sm:border-0",
+          "pb-[env(safe-area-inset-bottom)]",
+        )}
+      >
+        <div className="max-w-5xl mx-auto px-4 sm:px-0 sm:py-0">
+          <BulkActionsBar
+            count={count}
+            onClear={clear}
+            onExport={handleBulkExport}
+            onMove={handleBulkMove}
+            onDelete={handleBulkDelete}
+          />
+        </div>
+      </div>
     </div>
   );
 }

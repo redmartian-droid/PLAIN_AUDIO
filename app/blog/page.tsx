@@ -108,9 +108,7 @@ export default function BlogPage() {
                 onClick={() => setActiveTag(tag)}
                 className={[
                   "py-1.5 px-0.5 transition-colors duration-150",
-                  isActive
-                    ? "text-[#111] border-b border-[#111]"
-                    : "text-[#ccc] hover:text-[#999]",
+                  isActive ? "text-[#111]" : "text-[#ccc] hover:text-[#999]",
                 ].join(" ")}
               >
                 {tag}

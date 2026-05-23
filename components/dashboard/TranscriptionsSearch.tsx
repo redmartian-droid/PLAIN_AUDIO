@@ -37,6 +37,7 @@ export function TranscriptionsSearch({
   const allIds = transcriptions.map((t) => t.id);
   const allSelected = count === allIds.length && allIds.length > 0;
   const someSelected = count > 0 && !allSelected;
+  const selectionMode = count > 0;
 
   // ── Scroll fade state ──────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -103,7 +104,6 @@ export function TranscriptionsSearch({
   async function handleBulkDelete() {
     if (!selected.size) return;
 
-    // 1. Fetch storage paths before deleting rows
     const { data: items } = await supabase
       .from("transcriptions")
       .select("id, audio_storage_path")
@@ -114,13 +114,11 @@ export function TranscriptionsSearch({
       .map((t) => t.audio_storage_path)
       .filter((p): p is string => !!p);
 
-    // 2. Delete DB records first (source of truth)
     await supabase
       .from("transcriptions")
       .delete()
       .in("id", [...selected]);
 
-    // 3. Best-effort storage cleanup
     if (paths.length > 0) {
       const { error: storageError } = await supabase.storage
         .from("audio-uploads")
@@ -161,9 +159,9 @@ export function TranscriptionsSearch({
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 animate-fade-up">
+      <div className="flex items-center justify-between mb-6 sm:mb-8 animate-fade-up">
         <div>
-          <h1 className="font-display text-3xl font-bold text-foreground mb-1">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-1">
             All transcriptions
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -239,16 +237,30 @@ export function TranscriptionsSearch({
           <div className="flex items-center gap-2.5 mb-2 px-1">
             <button
               onClick={() => toggleAll(allIds)}
-              aria-label={allSelected ? "Deselect all" : "Select all"}
+              aria-label={
+                allSelected
+                  ? "Deselect all"
+                  : selectionMode
+                    ? "Select all"
+                    : "Select"
+              }
               className={cn(
                 "flex items-center gap-2 min-h-[44px] px-1",
-                "text-xs text-muted-foreground",
-                "transition-colors duration-200 hover:text-foreground",
+                "text-xs transition-colors duration-200",
+                selectionMode
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
                 "active:opacity-70",
               )}
             >
               <Checkbox checked={allSelected} indeterminate={someSelected} />
-              <span>{allSelected ? "Deselect all" : "Select all"}</span>
+              <span>
+                {allSelected
+                  ? "Deselect all"
+                  : selectionMode
+                    ? "Select all"
+                    : "Select"}
+              </span>
             </button>
             {count > 0 && (
               <span className="text-xs text-muted-foreground">
@@ -285,6 +297,7 @@ export function TranscriptionsSearch({
                       key={t.id}
                       transcription={t}
                       selected={isSelected(t.id)}
+                      selectionMode={selectionMode}
                       onSelect={() => toggle(t.id)}
                       showLanguage
                     >
