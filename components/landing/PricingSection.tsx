@@ -50,7 +50,7 @@ export function PricingSection() {
             )}
           >
             Annual
-            <span className="badge-pill dark">Save 31%</span>
+            <span className="badge-pill dark">Save 25%</span>
           </button>
         </div>
       </div>
@@ -112,17 +112,26 @@ export function PricingSection() {
             </div>
 
             <div className="price-lockup">
-              <span className="price-value dark">{annual ? "$8" : "$12"}</span>
+              <span className="price-value dark">{annual ? "$13" : "$18"}</span>
               <span className="price-period dark">/ month</span>
             </div>
 
-            {annual && <p className="price-annual-note">$99 billed annually</p>}
+            {annual && (
+              <p className="price-annual-note">$162 billed annually</p>
+            )}
             <p className="price-caption dark">
               For work that can't afford gaps.
             </p>
           </div>
 
-          <Link href="/signup" className="btn-pricing solid">
+          <Link
+            href={
+              annual
+                ? "/api/billing/checkout?interval=annual"
+                : "/api/billing/checkout?interval=monthly"
+            }
+            className="btn-pricing solid"
+          >
             Start with Pro
           </Link>
 

@@ -4,13 +4,24 @@ import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Play, Pause } from "lucide-react";
 
+// ─── Supabase config ────────────────────────────────────────────────────────
+const PROJECT_REF = "fgxcwdibkzxaqcruolhm";
+const BUCKET = "audio-uploads";
+
+export function getPublicUrl(path: string): string {
+  return `https://${PROJECT_REF}.supabase.co/storage/v1/object/public/${BUCKET}/${path}`;
+}
+
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
-const B = "#D63558";
+const BTN_COLOR = "#D63558";
+const BAR_PLAYED = "#fce8ee";
+const BAR_UNPLAYED = "rgba(214, 53, 88, 0.12)";
+
 const fontMono = {
   fontFamily: "var(--font-mono,'Courier New',monospace)",
 } as const;
 
-// ─── Audio Player ─────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function shortTimestamp(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -31,6 +42,8 @@ function buildFakeWaveform(barCount: number): number[] {
   });
 }
 
+// ─── Audio Player ─────────────────────────────────────────────────────────────
+
 function AudioPlayer({
   src,
   onTimeUpdate,
@@ -41,6 +54,8 @@ function AudioPlayer({
   seekRef: React.MutableRefObject<((time: number) => void) | null>;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
@@ -48,6 +63,15 @@ function AudioPlayer({
   const [waveform, setWaveform] = React.useState<number[]>(() =>
     buildFakeWaveform(80),
   );
+
+  // Audio analysis refs — never stored in state to avoid re-renders
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const freqDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const animFrameRef = useRef<number>(0);
+  // Store waveform in a ref so animation loop can read latest without closure staleness
+  const waveformRef = useRef<number[]>(buildFakeWaveform(80));
+  const progressRef = useRef(0);
 
   const BAR_COUNT = isMobile ? 40 : 80;
   const BAR_W = isMobile ? 3 : 2;
@@ -62,6 +86,7 @@ function AudioPlayer({
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Decode audio for static waveform shape
   React.useEffect(() => {
     if (!src) return;
     let cancelled = false;
@@ -85,7 +110,9 @@ function AudioPlayer({
           bars.push(peak);
         }
         const max = Math.max(...bars, 0.001);
-        setWaveform(bars.map((v) => Math.max(0.06, v / max)));
+        const normalized = bars.map((v) => Math.max(0.06, v / max));
+        setWaveform(normalized);
+        waveformRef.current = normalized;
         await ctx.close();
       } catch {
         // keep shaped fake waveform
@@ -97,21 +124,136 @@ function AudioPlayer({
     };
   }, [src, BAR_COUNT]);
 
+  // Force audio element to reset on mount (catches stale browser media state)
   React.useEffect(() => {
-    seekRef.current = (time: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.load();
+  }, []);
+
+  // CRITICAL: Clean up everything on unmount.
+  // We explicitly remove the src and call load() to flush Chrome's media cache
+  // so the next mount gets a completely fresh media resource.
+  React.useEffect(() => {
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load(); // forces the browser to release the media pipeline
+      }
+      analyserRef.current?.disconnect();
+      audioCtxRef.current?.close();
+      audioCtxRef.current = null;
+      analyserRef.current = null;
+      freqDataRef.current = null;
+    };
+  }, []);
+
+  // Animation loop: directly mutates SVG rects, zero React re-renders
+  const startAnimation = React.useCallback(() => {
+    const analyser = analyserRef.current;
+    const freqData = freqDataRef.current;
+    const svg = svgRef.current;
+    if (!analyser || !freqData || !svg) return;
+
+    const rects = svg.querySelectorAll<SVGRectElement>("rect[data-bar]");
+
+    const tick = () => {
+      analyser.getByteFrequencyData(freqData);
+      const binCount = freqData.length;
+      const playedCount = Math.round(progressRef.current * BAR_COUNT);
+
+      rects.forEach((rect, i) => {
+        const staticAmp = waveformRef.current[i] ?? 0.1;
+        const binIndex = Math.floor((i / BAR_COUNT) * binCount * 0.75);
+        const live = (freqData[binIndex] ?? 0) / 255;
+        const amp = Math.max(0.06, staticAmp * 0.6 + live * 0.4);
+        const barH = Math.max(2, amp * (WAVEFORM_H - 4));
+        rect.setAttribute("height", String(barH));
+        rect.setAttribute("y", String((WAVEFORM_H - barH) / 2));
+        rect.setAttribute("fill", i < playedCount ? BAR_PLAYED : BAR_UNPLAYED);
+      });
+
+      animFrameRef.current = requestAnimationFrame(tick);
+    };
+
+    animFrameRef.current = requestAnimationFrame(tick);
+  }, [BAR_COUNT, WAVEFORM_H]);
+
+  const stopAnimation = React.useCallback(() => {
+    cancelAnimationFrame(animFrameRef.current);
+    // Reset bars to static waveform
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rects = svg.querySelectorAll<SVGRectElement>("rect[data-bar]");
+    const playedCount = Math.round(progressRef.current * BAR_COUNT);
+    rects.forEach((rect, i) => {
+      const amp = waveformRef.current[i] ?? 0.1;
+      const barH = Math.max(2, amp * (WAVEFORM_H - 4));
+      rect.setAttribute("height", String(barH));
+      rect.setAttribute("y", String((WAVEFORM_H - barH) / 2));
+      rect.setAttribute("fill", i < playedCount ? BAR_PLAYED : BAR_UNPLAYED);
+    });
+  }, [BAR_COUNT, WAVEFORM_H]);
+
+  React.useEffect(() => {
+    const seekFn = (time: number) => {
       const audio = audioRef.current;
       if (!audio) return;
       audio.currentTime = time;
       if (!isPlaying) audio.play().catch(() => {});
     };
+    seekRef.current = seekFn;
+    return () => {
+      if (seekRef.current === seekFn) seekRef.current = null;
+    };
   }, [seekRef, isPlaying]);
 
-  const togglePlay = React.useCallback(() => {
+  // Lazy Web Audio setup — only initialise on first play click.
+  // This guarantees a fresh AudioContext + MediaElementSource every
+  // time the component mounts, avoiding stale graph issues.
+  const ensureAudioGraph = React.useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || audioCtxRef.current) return;
+
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaElementSource(audio);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 128;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
+      audioCtxRef.current = ctx;
+      analyserRef.current = analyser;
+      freqDataRef.current = new Uint8Array(analyser.frequencyBinCount);
+    } catch (e) {
+      console.error("Web Audio setup failed:", e);
+    }
+  }, []);
+
+  const togglePlay = React.useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (isPlaying) audio.pause();
-    else audio.play().catch(() => {});
-  }, [isPlaying]);
+
+    // Must resume AudioContext on user gesture (browser autoplay policy)
+    await ensureAudioGraph();
+    if (audioCtxRef.current?.state === "suspended") {
+      await audioCtxRef.current.resume();
+    }
+
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      try {
+        await audio.play();
+      } catch (e) {
+        console.error("Audio play failed:", e);
+      }
+    }
+  }, [isPlaying, ensureAudioGraph]);
 
   const handleWaveformClick = React.useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
@@ -124,8 +266,30 @@ function AudioPlayer({
     [duration],
   );
 
-  const progress = duration > 0 ? currentTime / duration : 0;
-  const playheadX = progress * BAR_TOTAL_W;
+  // Update played/unplayed colors when time changes (outside animation loop, i.e. when paused)
+  const handleTimeUpdate = React.useCallback(
+    (t: number) => {
+      setCurrentTime(t);
+      onTimeUpdate(t);
+      const p = duration > 0 ? t / duration : 0;
+      progressRef.current = p;
+      // When paused, the animation loop isn't running so update colors here
+      if (!isPlaying) {
+        const svg = svgRef.current;
+        if (!svg) return;
+        const playedCount = Math.round(p * BAR_COUNT);
+        svg
+          .querySelectorAll<SVGRectElement>("rect[data-bar]")
+          .forEach((rect, i) => {
+            rect.setAttribute(
+              "fill",
+              i < playedCount ? BAR_PLAYED : BAR_UNPLAYED,
+            );
+          });
+      }
+    },
+    [duration, isPlaying, onTimeUpdate, BAR_COUNT],
+  );
 
   return (
     <div
@@ -141,26 +305,31 @@ function AudioPlayer({
       <audio
         ref={audioRef}
         src={src}
+        crossOrigin="anonymous"
         preload="metadata"
-        onTimeUpdate={(e) => {
-          const t = e.currentTarget.currentTime;
-          setCurrentTime(t);
-          onTimeUpdate(t);
-        }}
+        onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget.currentTime)}
         onDurationChange={(e) => setDuration(e.currentTarget.duration)}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={() => {
+          setIsPlaying(true);
+          startAnimation();
+        }}
+        onPause={() => {
+          setIsPlaying(false);
+          stopAnimation();
+        }}
         onEnded={() => {
           setIsPlaying(false);
           setCurrentTime(0);
+          progressRef.current = 0;
           onTimeUpdate(0);
+          stopAnimation();
         }}
       />
 
       <button
         onClick={togglePlay}
         className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-opacity hover:opacity-80 active:scale-95"
-        style={{ background: B, color: "#fff" }}
+        style={{ background: BTN_COLOR, color: "#fff" }}
         aria-label={isPlaying ? "Pause" : "Play"}
       >
         {isPlaying ? (
@@ -172,6 +341,7 @@ function AudioPlayer({
 
       <div className="flex-1 min-w-0">
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${BAR_TOTAL_W} ${WAVEFORM_H}`}
           preserveAspectRatio="none"
           className="w-full cursor-pointer"
@@ -179,70 +349,22 @@ function AudioPlayer({
           onClick={handleWaveformClick}
           aria-label="Seek audio"
         >
-          <defs>
-            <clipPath id="cp-played-player">
-              <rect x={0} y={0} width={playheadX} height={WAVEFORM_H} />
-            </clipPath>
-            <clipPath id="cp-unplayed-player">
+          {waveform.slice(0, BAR_COUNT).map((amp, i) => {
+            const x = i * (BAR_W + BAR_GAP);
+            const barH = Math.max(2, amp * (WAVEFORM_H - 4));
+            return (
               <rect
-                x={playheadX}
-                y={0}
-                width={BAR_TOTAL_W}
-                height={WAVEFORM_H}
+                key={i}
+                data-bar={i}
+                x={x}
+                y={(WAVEFORM_H - barH) / 2}
+                width={BAR_W}
+                height={barH}
+                rx={BAR_W / 2}
+                fill={BAR_UNPLAYED}
               />
-            </clipPath>
-          </defs>
-
-          {/* Unplayed */}
-          <g clipPath="url(#cp-unplayed-player)" style={{ opacity: 0.15 }}>
-            {waveform.slice(0, BAR_COUNT).map((amp, i) => {
-              const x = i * (BAR_W + BAR_GAP);
-              const barH = Math.max(2, amp * (WAVEFORM_H - 4));
-              return (
-                <rect
-                  key={`u-${i}`}
-                  x={x}
-                  y={(WAVEFORM_H - barH) / 2}
-                  width={BAR_W}
-                  height={barH}
-                  rx={BAR_W / 2}
-                  fill="currentColor"
-                />
-              );
-            })}
-          </g>
-
-          {/* Played */}
-          <g clipPath="url(#cp-played-player)">
-            {waveform.slice(0, BAR_COUNT).map((amp, i) => {
-              const x = i * (BAR_W + BAR_GAP);
-              const barH = Math.max(2, amp * (WAVEFORM_H - 4));
-              return (
-                <rect
-                  key={`p-${i}`}
-                  x={x}
-                  y={(WAVEFORM_H - barH) / 2}
-                  width={BAR_W}
-                  height={barH}
-                  rx={BAR_W / 2}
-                  fill={B}
-                />
-              );
-            })}
-          </g>
-
-          {/* Playhead */}
-          {duration > 0 && (
-            <rect
-              x={playheadX - 0.75}
-              y={0}
-              width={1.5}
-              height={WAVEFORM_H}
-              rx={0.75}
-              fill={B}
-              opacity={0.7}
-            />
-          )}
+            );
+          })}
         </svg>
       </div>
 
@@ -275,15 +397,15 @@ export function Player({ src, onTimeUpdate, seekRef, visible }: PlayerProps) {
       <div
         className={cn(
           "z-50 pointer-events-none",
-          // Mobile: float 16px from bottom, match page gutters (px-6)
           "fixed bottom-4 left-0 right-0 px-6",
-          // Desktop: centered floating card
           "md:bottom-6 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-full md:max-w-2xl md:px-0",
         )}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="pointer-events-auto">
+          {/* key={src} destroys old audio element + Web Audio graph, mounts fresh */}
           <AudioPlayer
+            key={src}
             src={src}
             onTimeUpdate={onTimeUpdate}
             seekRef={seekRef}
@@ -291,7 +413,6 @@ export function Player({ src, onTimeUpdate, seekRef, visible }: PlayerProps) {
         </div>
       </div>
 
-      {/* Dynamic spacer to prevent content from being hidden behind player */}
       <div className="h-24 md:h-0" aria-hidden />
     </>
   );

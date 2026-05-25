@@ -22,7 +22,9 @@ export async function GET() {
     );
   }
 
-  // Polar customer portal URL
-  const portalUrl = `https://sandbox.polar.sh/purchases?customer_id=${profile.polar_customer_id}`;
+  // Polar customer portal URL (environment-aware)
+  const isProd = process.env.POLAR_ENV === "production";
+  const baseUrl = isProd ? "https://polar.sh" : "https://sandbox.polar.sh";
+  const portalUrl = `${baseUrl}/purchases?customer_id=${profile.polar_customer_id}`;
   return NextResponse.redirect(portalUrl);
 }

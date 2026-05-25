@@ -362,12 +362,20 @@ export function SettingsContent({ user, profile }: Props) {
                 Unlimited transcriptions, 500MB files, SRT exports and more.
               </p>
             </div>
-            <a
-              href="/api/billing/checkout"
-              className="inline-flex items-center gap-2 bg-blue-600 text-white text-[13px] font-medium px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors duration-75"
-            >
-              From R220/mo →
-            </a>
+            <div className="flex gap-2">
+              <a
+                href="/api/billing/checkout?interval=monthly"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white text-[13px] font-medium px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors duration-75"
+              >
+                $18/mo
+              </a>
+              <a
+                href="/api/billing/checkout?interval=annual"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white text-[13px] font-medium px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors duration-75"
+              >
+                $162/yr · save $54
+              </a>
+            </div>
           </div>
         ) : null}
       </section>

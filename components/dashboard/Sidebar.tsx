@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutGrid, Clock, Plus, FolderIcon, PanelLeft } from "lucide-react";
+import {
+  LayoutGrid,
+  LayoutList,
+  Plus,
+  FolderIcon,
+  PanelLeft,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewFolderModal } from "./NewFolderModal";
 
@@ -36,7 +42,7 @@ const navItems: NavItem[] = [
   {
     href: "/dashboard/transcriptions",
     label: "All transcriptions",
-    icon: Clock,
+    icon: LayoutList,
     shortcut: "ctrl+2",
   },
 ];

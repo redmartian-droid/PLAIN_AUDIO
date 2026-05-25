@@ -3,14 +3,19 @@
 import React from "react";
 import {
   Pencil,
-  Download,
   Trash2,
   FolderOpen,
   FileText,
   MoreHorizontal,
+  X,
+  Type,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExportButtons } from "@/components/dashboard/ExportButtons";
+
+const fontSyne = {
+  fontFamily: "var(--font-syne,'Helvetica Neue',sans-serif)",
+} as const;
 
 // ─── Toolbar Button ───────────────────────────────────────────────────────────
 
@@ -34,11 +39,12 @@ function ToolbarBtn({
       aria-label={label}
       className={cn(
         "w-11 h-11 flex items-center justify-center rounded-xl border text-muted-foreground/60",
-        "[transition:background-color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1),border-color_150ms_ease,color_150ms_ease]",
+        "transition-all duration-150",
         "active:scale-90",
-        "focus-visible:outline-none focus-visible:bg-[#F0EEEB]",
+        "outline-none",
+        "focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#F0EEEB]/50",
         danger
-          ? "border-border/40 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+          ? "border-border/40 hover:bg-red-50 hover:text-red-600 hover:border-red-200 focus-visible:ring-red-500/20 focus-visible:bg-red-50/50"
           : "border-border/40 hover:bg-[#F0EEEB] hover:text-foreground hover:border-[#E2E0DB]",
         disabled && "opacity-40 cursor-not-allowed pointer-events-none",
       )}
@@ -78,7 +84,7 @@ function ActionSheet({
   return (
     <ActionSheetContext.Provider value={{ open }}>
       <div
-        className="fixed inset-0 z-[70] md:hidden"
+        className="fixed inset-0 z-[70] lg:hidden"
         style={{
           background: "rgba(0,0,0,0.25)",
           backdropFilter: "blur(6px)",
@@ -92,7 +98,7 @@ function ActionSheet({
       />
 
       <div
-        className="fixed bottom-0 left-0 right-0 z-[70] md:hidden flex flex-col"
+        className="fixed bottom-0 left-0 right-0 z-[70] lg:hidden flex flex-col"
         style={{
           background: "#F8F7F4",
           borderRadius: "20px 20px 0 0",
@@ -106,27 +112,45 @@ function ActionSheet({
         aria-modal="true"
         aria-label="Actions menu"
       >
-        <div className="flex justify-center pt-3 pb-2 shrink-0">
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div
             className="w-9 h-1 rounded-full"
             style={{ background: "#E2E0DB" }}
           />
         </div>
-        <div className="p-2 pb-4">{children}</div>
+
+        <div
+          className="flex items-center justify-between px-5 py-3"
+          style={{ borderBottom: "1px solid #E2E0DB" }}
+        >
+          <span
+            className="text-[13px] font-semibold text-foreground"
+            style={fontSyne}
+          >
+            Actions
+          </span>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#E8E5E1] text-muted-foreground"
+            aria-label="Close"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="p-3 flex flex-col gap-1">{children}</div>
       </div>
     </ActionSheetContext.Provider>
   );
 }
 
 function ActionSheetItem({
-  icon: Icon,
   label,
   onClick,
   disabled,
   danger,
   index = 0,
 }: {
-  icon: React.ElementType;
   label: string;
   onClick: () => void;
   disabled?: boolean;
@@ -140,9 +164,11 @@ function ActionSheetItem({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98]",
+        "w-full text-left px-4 py-4 rounded-xl transition-colors active:scale-[0.98]",
+        "text-[15px] font-medium",
+        "outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#F0EEEB]/70",
         danger
-          ? "text-red-600 hover:bg-red-50"
+          ? "text-red-600 hover:bg-red-50 focus-visible:ring-red-500/20 focus-visible:bg-red-50/50"
           : "text-foreground hover:bg-[#F0EEEB]",
         disabled && "opacity-40 cursor-not-allowed",
       )}
@@ -154,8 +180,7 @@ function ActionSheetItem({
           : "opacity 100ms ease, transform 100ms ease",
       }}
     >
-      <Icon size={18} strokeWidth={2} />
-      <span className="text-[15px] font-medium">{label}</span>
+      {label}
     </button>
   );
 }
@@ -197,8 +222,8 @@ export function Toolbar({
 }: ToolbarProps) {
   return (
     <div className="flex-shrink-0 flex items-center gap-2 pt-0.5">
-      {/* Mobile: Export (icon-only) + single More trigger */}
-      <div className="flex items-center gap-1 md:hidden">
+      {/* Mobile + Tablet: Export (icon-only) + single More trigger */}
+      <div className="flex items-center gap-1 lg:hidden">
         <ExportButtons
           transcription={{
             id: transcription.id,
@@ -215,13 +240,12 @@ export function Toolbar({
         </ToolbarBtn>
       </div>
 
-      {/* Mobile Action Sheet — all actions inside */}
+      {/* Mobile + Tablet Action Sheet — text-only rows */}
       <ActionSheet
         open={showMobileActions}
         onClose={() => onMobileActionsChange(false)}
       >
         <ActionSheetItem
-          icon={FileText}
           label="Edit transcript"
           onClick={() => {
             onMobileActionsChange(false);
@@ -230,7 +254,6 @@ export function Toolbar({
           index={0}
         />
         <ActionSheetItem
-          icon={Pencil}
           label="Rename"
           onClick={() => {
             onMobileActionsChange(false);
@@ -239,7 +262,6 @@ export function Toolbar({
           index={1}
         />
         <ActionSheetItem
-          icon={Download}
           label="Download audio"
           onClick={() => {
             onMobileActionsChange(false);
@@ -249,7 +271,6 @@ export function Toolbar({
           index={2}
         />
         <ActionSheetItem
-          icon={FolderOpen}
           label="Move to folder"
           onClick={() => {
             onMobileActionsChange(false);
@@ -258,7 +279,6 @@ export function Toolbar({
           index={3}
         />
         <ActionSheetItem
-          icon={Trash2}
           label="Delete"
           danger
           onClick={() => {
@@ -270,9 +290,9 @@ export function Toolbar({
       </ActionSheet>
 
       {/* Desktop: full toolbar + Export */}
-      <div className="hidden md:flex items-center gap-1">
+      <div className="hidden lg:flex items-center gap-1">
         <ToolbarBtn onClick={onEditText} label="Edit transcript">
-          <FileText size={13} />
+          <Type size={13} />
         </ToolbarBtn>
         <ToolbarBtn onClick={onRename} label="Rename">
           <Pencil size={13} />
@@ -285,7 +305,7 @@ export function Toolbar({
           disabled={!canDownload}
           label="Download audio"
         >
-          <Download size={13} />
+          <FileText size={13} />
         </ToolbarBtn>
 
         <ToolbarDivider />
@@ -301,7 +321,7 @@ export function Toolbar({
         </ToolbarBtn>
       </div>
 
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <ExportButtons
           transcription={{
             id: transcription.id,

@@ -1,97 +1,243 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound, redirect } from "next/navigation";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronRight, AlertCircle, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { NewTranscriptionButton } from "@/components/dashboard/NewTranscriptionButton";
 import { FolderActions } from "@/components/dashboard/FolderActions";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime, formatDuration } from "@/lib/utils";
 
-export default async function FolderPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const supabase = await createClient();
+const fontSyne = {
+  fontFamily: "var(--font-syne,'Helvetica Neue',sans-serif)",
+} as const;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+const fontMono = {
+  fontFamily: "var(--font-mono,'Courier New',monospace)",
+} as const;
 
-  const [{ data: folder, error: folderError }, { data: transcriptions }] =
-    await Promise.all([
-      supabase
-        .from("folders")
-        .select("*")
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .single(),
-      supabase
-        .from("transcriptions")
-        .select("id, title, status, duration_seconds, word_count, created_at")
-        .eq("folder_id", id)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false }),
-    ]);
+interface Folder {
+  id: string;
+  name: string;
+  is_default?: boolean;
+  created_at: string;
+  user_id: string;
+}
 
-  if (folderError || !folder) notFound();
+interface Transcription {
+  id: string;
+  title: string;
+  status: string;
+  duration_seconds?: number | null;
+  word_count?: number | null;
+  created_at: string;
+}
 
-  const count = transcriptions?.length ?? 0;
+export default function FolderPage({ params }: { params: { id: string } }) {
+  const { id } = params;
+  const supabase = createClient();
+  const [folder, setFolder] = useState<Folder | null>(null);
+  const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [
+          { data: folderData, error: folderError },
+          { data: transcriptionsData },
+        ] = await Promise.all([
+          supabase.from("folders").select("*").eq("id", id).single(),
+          supabase
+            .from("transcriptions")
+            .select(
+              "id, title, status, duration_seconds, word_count, created_at",
+            )
+            .eq("folder_id", id)
+            .order("created_at", { ascending: false }),
+        ]);
+
+        if (folderData && !folderError) {
+          setFolder(folderData as Folder);
+          setNameDraft(folderData.name);
+        }
+        if (transcriptionsData) {
+          setTranscriptions(transcriptionsData as Transcription[]);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id, supabase]);
+
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [isRenaming]);
+
+  const handleRename = async () => {
+    if (!folder) return;
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === folder.name) {
+      setNameDraft(folder.name);
+      setIsRenaming(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("folders")
+      .update({ name: trimmed })
+      .eq("id", folder.id);
+
+    if (!error) {
+      setFolder((prev) => (prev ? { ...prev, name: trimmed } : null));
+      setNameDraft(trimmed);
+      setIsRenaming(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 px-4 py-6 sm:p-8 max-w-5xl mx-auto w-full flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!folder) {
+    return (
+      <div className="flex-1 px-4 py-6 sm:p-8 max-w-5xl mx-auto w-full flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Folder not found</p>
+      </div>
+    );
+  }
+
+  const count = transcriptions.length;
 
   return (
     <div className="flex-1 px-4 py-6 sm:p-8 max-w-5xl mx-auto w-full">
       {/* Header */}
       <div className="mb-6 sm:mb-8 animate-fade-up [animation-delay:40ms]">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 mb-2">
+        {/* ── Breadcrumb ── */}
+        <nav
+          className="flex items-center gap-1.5 mb-5 flex-wrap"
+          aria-label="Breadcrumb"
+        >
+          <Link
+            href="/dashboard"
+            className="text-[12px] md:text-[13px] text-muted-foreground hover:opacity-70 transition-opacity duration-150"
+            style={fontSyne}
+          >
+            dashboard
+          </Link>
+          <span
+            className="text-muted-foreground/30 text-[11px] md:text-[12px] select-none"
+            aria-hidden
+          >
+            &gt;
+          </span>
           <Link
             href="/dashboard/folders"
-            className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors duration-150 shrink-0"
+            className="text-[12px] md:text-[13px] text-muted-foreground hover:opacity-70 transition-opacity duration-150"
+            style={fontSyne}
           >
-            Folders
+            folders
           </Link>
-          <span className="text-xs text-muted-foreground/25" aria-hidden>
-            /
+          <span
+            className="text-muted-foreground/30 text-[11px] md:text-[12px] select-none"
+            aria-hidden
+          >
+            &gt;
           </span>
-          <span className="text-xs text-muted-foreground/60 truncate min-w-0">
+          <span
+            className="text-[12px] md:text-[13px] text-foreground font-semibold truncate max-w-[200px]"
+            style={fontSyne}
+          >
             {folder.name}
           </span>
-        </div>
+        </nav>
 
         {/* Title row */}
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-0.5 min-w-0">
-              {/*
-                text-xl on mobile (20px) — enough hierarchy without
-                fighting the action cluster for horizontal space.
-                font-display stays, just lighter at this size.
-              */}
-              <h1 className="text-xl sm:text-[28px] font-semibold font-display tracking-tight leading-snug text-foreground truncate">
-                {folder.name}
-              </h1>
+              {isRenaming ? (
+                <div className="flex flex-col gap-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleRename();
+                      if (e.key === "Escape") {
+                        setNameDraft(folder.name);
+                        setIsRenaming(false);
+                      }
+                    }}
+                    onBlur={handleRename}
+                    autoFocus
+                    className="bg-transparent outline-none focus:bg-[#F0EEEB]/40 rounded-sm px-1 -mx-1 transition-colors duration-150"
+                    style={{
+                      ...fontSyne,
+                      fontWeight: 600,
+                      fontSize: "clamp(1.1rem, 2vw, 1.75rem)",
+                      letterSpacing: "-0.02em",
+                      color: "#0D0D0D",
+                    }}
+                  />
+                  <p
+                    style={{
+                      ...fontMono,
+                      fontSize: 9.5,
+                      color: "#C4C1BC",
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    return to save · esc to cancel
+                  </p>
+                </div>
+              ) : (
+                <h1
+                  onClick={() => setIsRenaming(true)}
+                  className="text-xl sm:text-[28px] font-semibold font-display tracking-tight leading-snug text-foreground cursor-pointer hover:opacity-70 transition-opacity"
+                  title="Click to rename"
+                >
+                  {folder.name}
+                </h1>
+              )}
               {folder.is_default && (
                 <span className="text-[11px] font-medium text-[var(--success)] bg-[var(--success)]/10 border border-[var(--success)]/20 px-2 py-0.5 rounded-full leading-none shrink-0">
                   Default
                 </span>
               )}
             </div>
-            {/* Drop "Created" — date is self-explanatory */}
-            <p className="text-xs text-muted-foreground/50 tabular-nums whitespace-nowrap">
+            <p
+              style={{
+                fontFamily: "var(--font-mono,'Courier New',monospace)",
+                fontSize: 11,
+                letterSpacing: "0.04em",
+                color: "#AAA8A4",
+              }}
+            >
               {count} {count === 1 ? "transcription" : "transcriptions"}
               {" · "}
               {formatRelativeTime(folder.created_at)}
             </p>
           </div>
 
-          {/*
-            gap-1.5 instead of gap-2 — tightens the button cluster
-            by 2px per gap which matters when you have 3 buttons.
-          */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <FolderActions folderId={id} folderName={folder.name} />
+            <FolderActions
+              folderId={id}
+              onStartRename={() => setIsRenaming(true)}
+            />
             <NewTranscriptionButton folderId={id} />
           </div>
         </div>

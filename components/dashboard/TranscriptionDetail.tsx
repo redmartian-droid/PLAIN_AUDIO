@@ -6,8 +6,8 @@ import React, {
   useRef,
   useCallback,
   useMemo,
-  useContext,
 } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   AlignLeft,
@@ -24,7 +24,6 @@ import { formatRelativeTime, formatDuration, cn } from "@/lib/utils";
 import { Toolbar } from "@/components/dashboard/transcription-detail/Toolbar";
 import { Player } from "@/components/dashboard/transcription-detail/Player";
 
-// ─── Brand tokens ─────────────────────────────────────────────────────────────
 const B = "#D63558";
 const fontSyne = {
   fontFamily: "var(--font-syne,'Helvetica Neue',sans-serif)",
@@ -32,8 +31,6 @@ const fontSyne = {
 const fontMono = {
   fontFamily: "var(--font-mono,'Courier New',monospace)",
 } as const;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Segment {
   start: number;
@@ -57,8 +54,6 @@ interface Transcription {
   audio_storage_path?: string;
   folder_id?: string;
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function shortTimestamp(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -90,8 +85,6 @@ function getSpeakerCount(segments?: Segment[]): number {
   ).size;
 }
 
-// ─── Segment Grouping ─────────────────────────────────────────────────────────
-
 interface SegmentGroup {
   speaker?: string;
   segments: Segment[];
@@ -121,122 +114,6 @@ function groupSegments(segments: Segment[]): SegmentGroup[] {
   return groups;
 }
 
-// ─── Stat Strip ───────────────────────────────────────────────────────────────
-
-function StatStrip({
-  duration_seconds,
-  word_count,
-  language,
-  segments,
-  created_at,
-}: {
-  duration_seconds?: number;
-  word_count?: number;
-  language?: string;
-  segments?: Segment[];
-  created_at: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const readingMins = word_count ? Math.ceil(word_count / 200) : null;
-  const speakerCount = getSpeakerCount(segments);
-
-  const chips: {
-    icon?: React.ElementType;
-    label: string;
-    secondary?: boolean;
-  }[] = [
-    { icon: Clock, label: formatRelativeTime(created_at) },
-    ...(duration_seconds
-      ? [{ icon: Clock, label: formatDuration(duration_seconds) }]
-      : []),
-    ...(word_count
-      ? [
-          {
-            icon: AlignLeft,
-            label: `${word_count.toLocaleString()} words`,
-            secondary: true,
-          },
-        ]
-      : []),
-    ...(readingMins
-      ? [{ icon: BookOpen, label: `~${readingMins} min read`, secondary: true }]
-      : []),
-    ...(language ? [{ label: language.toUpperCase(), secondary: true }] : []),
-    ...(speakerCount >= 2
-      ? [{ icon: Users, label: `${speakerCount} speakers`, secondary: true }]
-      : []),
-  ];
-
-  const primary = chips.filter((c) => !c.secondary);
-  const secondary = chips.filter((c) => c.secondary);
-
-  return (
-    <div className="flex items-center flex-wrap gap-1.5">
-      {primary.map((chip, i) => {
-        const Icon = chip.icon;
-        return (
-          <span
-            key={i}
-            className="inline-flex items-center gap-1 px-2 py-[3px] rounded-md"
-            style={{
-              background: "#F0EEEB",
-              ...fontMono,
-              fontSize: 10.5,
-              color: "#888581",
-              letterSpacing: "0.03em",
-            }}
-          >
-            {Icon && <Icon size={10} strokeWidth={2} aria-hidden />}
-            {chip.label}
-          </span>
-        );
-      })}
-
-      {secondary.length > 0 && (
-        <>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="md:hidden inline-flex items-center gap-1 px-2 py-[3px] rounded-md transition-colors active:scale-95"
-            style={{
-              background: "#F0EEEB",
-              ...fontMono,
-              fontSize: 10.5,
-              color: "#888581",
-              letterSpacing: "0.03em",
-            }}
-            aria-label={expanded ? "Show fewer details" : "Show more details"}
-          >
-            {expanded ? "Less" : `+${secondary.length}`}
-          </button>
-          {(expanded ||
-            (typeof window !== "undefined" && window.innerWidth >= 768)) &&
-            secondary.map((chip, i) => {
-              const Icon = chip.icon;
-              return (
-                <span
-                  key={`sec-${i}`}
-                  className="inline-flex items-center gap-1 px-2 py-[3px] rounded-md"
-                  style={{
-                    background: "#F0EEEB",
-                    ...fontMono,
-                    fontSize: 10.5,
-                    color: "#888581",
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  {Icon && <Icon size={10} strokeWidth={2} aria-hidden />}
-                  {chip.label}
-                </span>
-              );
-            })}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─── Status Signal ────────────────────────────────────────────────────────────
-
 function StatusSignal({ status }: { status: string }) {
   const map: Record<string, { dot: string; label: string }> = {
     processing: { dot: "bg-amber-400 animate-pulse", label: "Processing" },
@@ -254,25 +131,40 @@ function StatusSignal({ status }: { status: string }) {
   );
 }
 
-// ─── Transcript: Inline Timestamp View ───────────────────────────────────────
+// ─── Inline Transcript ────────────────────────────────────────────────────────
 
 function InlineTranscript({
   segments,
   showSpeakers,
   activeTime,
   onSeek,
+  editMode,
+  onSaveSegment,
 }: {
   segments: Segment[];
   showSpeakers: boolean;
   activeTime: number;
   onSeek: (time: number) => void;
+  editMode: boolean;
+  onSaveSegment: (segStart: number, newText: string) => Promise<void>;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const activeSegRef = useRef<HTMLSpanElement | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editingSegStart, setEditingSegStart] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const groups = groupSegments(segments);
+
+  // Auto-resize textarea height
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [editDraft]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -290,7 +182,7 @@ function InlineTranscript({
   }, []);
 
   useEffect(() => {
-    if (!autoScroll) return;
+    if (!autoScroll || editingSegStart !== null) return;
     const activeEl = activeSegRef.current;
     const container = containerRef.current;
     if (!activeEl || !container) return;
@@ -302,7 +194,15 @@ function InlineTranscript({
     if (isAbove || isBelow) {
       activeEl.scrollIntoView({ block: "center", behavior: "smooth" });
     }
-  }, [activeTime, autoScroll]);
+  }, [activeTime, autoScroll, editingSegStart]);
+
+  // Exit edit mode when editMode is turned off
+  useEffect(() => {
+    if (!editMode) {
+      setEditingSegStart(null);
+      setEditDraft("");
+    }
+  }, [editMode]);
 
   const handleSeek = useCallback(
     (time: number) => {
@@ -311,6 +211,25 @@ function InlineTranscript({
     },
     [onSeek],
   );
+
+  const startEdit = (seg: Segment) => {
+    if (!editMode) return;
+    setEditingSegStart(seg.start);
+    setEditDraft(seg.text);
+  };
+
+  const saveEdit = async () => {
+    if (editingSegStart === null) return;
+    const trimmed = editDraft.trim();
+    if (trimmed) await onSaveSegment(editingSegStart, trimmed);
+    setEditingSegStart(null);
+    setEditDraft("");
+  };
+
+  const cancelEdit = () => {
+    setEditingSegStart(null);
+    setEditDraft("");
+  };
 
   return (
     <div ref={containerRef} className="space-y-1">
@@ -326,22 +245,70 @@ function InlineTranscript({
           <p className="text-sm md:text-[15px] text-muted-foreground leading-[1.85] max-w-prose">
             {group.segments.map((seg, si) => {
               const isActive = activeTime >= seg.start && activeTime < seg.end;
+              const isEditing = editingSegStart === seg.start;
+
               return (
-                <span key={si} ref={isActive ? activeSegRef : null}>
+                <span
+                  key={si}
+                  ref={isActive && !editMode ? activeSegRef : null}
+                >
+                  {/* Timestamp — always visible, never edited */}
                   <span className="text-xs font-mono text-muted-foreground/30 mr-1 select-none">
                     ({shortTimestamp(seg.start)})
                   </span>
-                  <span
-                    onClick={() => handleSeek(seg.start)}
-                    className={cn(
-                      "cursor-pointer rounded px-1.5 py-0.5 -mx-1.5 transition-colors duration-150",
-                      isActive
-                        ? "bg-foreground/10 text-foreground"
-                        : "hover:bg-muted-foreground/10 active:bg-foreground/5",
-                    )}
-                  >
-                    {seg.text}
-                  </span>{" "}
+                  {isEditing ? (
+                    /* ── Inline edit: textarea that looks like the text itself ── */
+                    <span className="inline-block w-full my-0.5">
+                      <textarea
+                        ref={textareaRef}
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            saveEdit();
+                          }
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        onBlur={saveEdit}
+                        autoFocus
+                        rows={1}
+                        className="w-full resize-none bg-transparent outline-none text-foreground leading-[1.85] text-sm md:text-[15px] overflow-hidden transition-colors duration-150 rounded-sm px-1.5 py-0.5 focus:bg-[#F0EEEB]/40"
+                        style={{
+                          fontFamily: "inherit",
+                          display: "block",
+                        }}
+                      />
+                      <span
+                        className="block mt-1 select-none"
+                        style={{
+                          ...fontMono,
+                          fontSize: 9.5,
+                          color: "#C4C1BC",
+                          letterSpacing: "0.06em",
+                        }}
+                      >
+                        return to save · esc to cancel
+                      </span>
+                    </span>
+                  ) : (
+                    /* ── Default segment span ── */
+                    <span
+                      onClick={() =>
+                        editMode ? startEdit(seg) : handleSeek(seg.start)
+                      }
+                      className={cn(
+                        "rounded px-1.5 py-0.5 -mx-1.5 transition-colors duration-150",
+                        editMode
+                          ? "cursor-text hover:bg-[#F0EEEB]"
+                          : isActive
+                            ? "bg-foreground/10 text-foreground cursor-pointer"
+                            : "cursor-pointer hover:bg-muted-foreground/10 active:bg-foreground/5",
+                      )}
+                    >
+                      {seg.text}
+                    </span>
+                  )}{" "}
                 </span>
               );
             })}
@@ -354,19 +321,69 @@ function InlineTranscript({
 
 // ─── Plain Text Fallback ──────────────────────────────────────────────────────
 
-function PlainTranscript({ text }: { text: string }) {
+function PlainTranscript({
+  text,
+  editMode,
+  onSave,
+}: {
+  text: string;
+  editMode: boolean;
+  onSave: (newText: string) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(text);
+  const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    setDraft(text);
+    setIsDirty(false);
+  }, [text]);
+
+  if (!editMode) {
+    return (
+      <div className="space-y-4 max-w-prose">
+        {text.split("\n").map((p, i) =>
+          p.trim() ? (
+            <p
+              key={i}
+              className="text-sm md:text-[15px] text-muted-foreground leading-[1.85]"
+            >
+              {p}
+            </p>
+          ) : null,
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4 max-w-prose">
-      {text.split("\n").map((p, i) =>
-        p.trim() ? (
-          <p
-            key={i}
-            className="text-sm md:text-[15px] text-muted-foreground leading-[1.85]"
-          >
-            {p}
-          </p>
-        ) : null,
-      )}
+    <div className="max-w-prose flex flex-col gap-3">
+      <textarea
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setIsDirty(true);
+        }}
+        className="w-full resize-none bg-transparent outline-none text-sm md:text-[15px] text-foreground leading-[1.85] min-h-[200px] transition-colors duration-150 focus:bg-[#F0EEEB]/40 rounded-sm px-2 -mx-2 py-1"
+        style={{
+          fontFamily: "inherit",
+        }}
+        onBlur={() => {
+          if (isDirty) {
+            onSave(draft.trim());
+            setIsDirty(false);
+          }
+        }}
+      />
+      <p
+        style={{
+          ...fontMono,
+          fontSize: 9.5,
+          color: "#C4C1BC",
+          letterSpacing: "0.06em",
+        }}
+      >
+        changes save automatically on blur
+      </p>
     </div>
   );
 }
@@ -414,7 +431,6 @@ function ProcessingState({ status }: { status: string }) {
           />
         ))}
       </span>
-
       <div className="flex flex-col items-center gap-1 text-center">
         <p
           className="text-[13px] text-foreground"
@@ -444,7 +460,6 @@ function FailedState({ onRetry }: { onRetry?: () => void }) {
       >
         <AlertTriangle size={18} style={{ color: "#DC2626" }} />
       </div>
-
       <div className="flex flex-col items-center gap-1 text-center">
         <p className="text-[13px] font-medium text-foreground">
           Transcription failed
@@ -457,11 +472,10 @@ function FailedState({ onRetry }: { onRetry?: () => void }) {
           a new copy.
         </p>
       </div>
-
       {onRetry && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium transition-all duration-150 outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#E8E5E1] active:scale-95"
           style={{
             background: "#F0EEEB",
             color: "#0D0D0D",
@@ -495,7 +509,6 @@ function ConfirmDialog({
 }) {
   return (
     <>
-      {/* Mobile: Bottom Sheet */}
       <div
         className="fixed inset-0 z-[60] md:hidden"
         style={{
@@ -509,7 +522,6 @@ function ConfirmDialog({
         onClick={onCancel}
         aria-hidden
       />
-
       <div
         className="fixed bottom-0 left-0 right-0 z-[60] md:hidden flex flex-col"
         style={{
@@ -524,15 +536,12 @@ function ConfirmDialog({
         role="dialog"
         aria-modal="true"
       >
-        {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2 shrink-0">
           <div
             className="w-9 h-1 rounded-full"
             style={{ background: "#E2E0DB" }}
           />
         </div>
-
-        {/* Content */}
         <div
           className="px-5 pt-2 pb-6"
           style={{
@@ -565,21 +574,20 @@ function ConfirmDialog({
               </p>
             </div>
           </div>
-
           <div className="flex flex-col gap-2">
             <button
               onClick={() => {
                 onCancel();
                 onConfirm();
               }}
-              className="w-full py-3.5 rounded-xl text-[15px] font-medium text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+              className="w-full py-3.5 rounded-xl text-[15px] font-medium text-white transition-all duration-150 hover:opacity-90 active:scale-[0.98] outline-none focus-visible:ring-1 focus-visible:ring-red-500/30 focus-visible:ring-inset"
               style={{ background: "#DC2626", ...fontMono }}
             >
               Delete
             </button>
             <button
               onClick={onCancel}
-              className="w-full py-3.5 rounded-xl text-[15px] font-medium transition-colors hover:bg-[#F0EEEB] active:scale-[0.98]"
+              className="w-full py-3.5 rounded-xl text-[15px] font-medium transition-all duration-150 hover:bg-[#F0EEEB] active:scale-[0.98] outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#E8E5E1]"
               style={{ color: "#6B6966", ...fontMono }}
             >
               Cancel
@@ -587,8 +595,6 @@ function ConfirmDialog({
           </div>
         </div>
       </div>
-
-      {/* Desktop: Centered Modal */}
       <div
         className="hidden md:flex fixed inset-0 z-[60] items-center justify-center p-4"
         style={{
@@ -634,21 +640,20 @@ function ConfirmDialog({
               </p>
             </div>
           </div>
-
           <div
             className="flex items-center justify-end gap-2 px-5 py-3"
             style={{ background: "#F0EEEB", borderTop: "1px solid #E2E0DB" }}
           >
             <button
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors hover:bg-[#E8E5E1] active:scale-[.97]"
+              className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 hover:bg-[#E8E5E1] active:scale-[.97] outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#E8E5E1]"
               style={{ color: "#6B6966", ...fontMono, letterSpacing: "0.04em" }}
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-white transition-colors hover:bg-red-700 active:scale-[.97]"
+              className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-white transition-all duration-150 hover:bg-red-700 active:scale-[.97] outline-none focus-visible:ring-1 focus-visible:ring-red-500/30 focus-visible:ring-inset focus-visible:bg-red-700"
               style={{
                 background: "#DC2626",
                 ...fontMono,
@@ -691,7 +696,6 @@ function MoveDialog({
 
   return (
     <>
-      {/* Mobile: Bottom Sheet */}
       <div
         className="fixed inset-0 z-[60] md:hidden"
         style={{
@@ -705,7 +709,6 @@ function MoveDialog({
         onClick={onClose}
         aria-hidden
       />
-
       <div
         className="fixed bottom-0 left-0 right-0 z-[60] md:hidden flex flex-col max-h-[70vh]"
         style={{
@@ -720,15 +723,12 @@ function MoveDialog({
         role="dialog"
         aria-modal="true"
       >
-        {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2 shrink-0">
           <div
             className="w-9 h-1 rounded-full"
             style={{ background: "#E2E0DB" }}
           />
         </div>
-
-        {/* Header */}
         <div
           className="flex items-center justify-between px-5 pt-2 pb-3"
           style={{ borderBottom: "1px solid #E2E0DB" }}
@@ -741,13 +741,11 @@ function MoveDialog({
           </h3>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#E8E5E1] text-muted-foreground"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150 hover:bg-[#E8E5E1] text-muted-foreground outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#E8E5E1]"
           >
             <X size={14} />
           </button>
         </div>
-
-        {/* Folder list */}
         <div className="overflow-y-auto p-2">
           {folders.length === 0 && (
             <p
@@ -764,7 +762,7 @@ function MoveDialog({
                 key={folder.id}
                 onClick={() => onMove(folder.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98]",
+                  "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#F0EEEB]",
                   isCurrent ? "bg-[#F0EEEB] font-medium" : "hover:bg-[#F0EEEB]",
                 )}
                 style={{
@@ -792,8 +790,6 @@ function MoveDialog({
           })}
         </div>
       </div>
-
-      {/* Desktop: Centered Modal */}
       <div
         className="hidden md:flex fixed inset-0 z-[60] items-center justify-center p-4"
         style={{
@@ -829,12 +825,11 @@ function MoveDialog({
             </h3>
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-[#E8E5E1] text-muted-foreground"
+              className="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-150 hover:bg-[#E8E5E1] text-muted-foreground outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#E8E5E1]"
             >
               <X size={13} />
             </button>
           </div>
-
           <div className="p-2 max-h-64 overflow-y-auto">
             {folders.length === 0 && (
               <p
@@ -851,7 +846,7 @@ function MoveDialog({
                   key={folder.id}
                   onClick={() => onMove(folder.id)}
                   className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-left transition-colors",
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-left transition-colors outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:bg-[#F0EEEB]",
                     isCurrent
                       ? "bg-[#F0EEEB] font-medium"
                       : "hover:bg-[#F0EEEB]",
@@ -883,8 +878,12 @@ function MoveDialog({
 
 export function TranscriptionDetail({
   transcription: initial,
+  backLabel: _backLabel,
+  backHref: _backHref,
 }: {
   transcription: Transcription;
+  backLabel?: string;
+  backHref?: string;
 }) {
   const [transcription, setTranscription] = useState<Transcription>(initial);
   const [speakerView, setSpeakerView] = useState(false);
@@ -893,19 +892,29 @@ export function TranscriptionDetail({
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(transcription.title);
-  const [isEditingText, setIsEditingText] = useState(false);
-  const [textDraft, setTextDraft] = useState("");
+  const [editMode, setEditMode] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
 
+  // ── Fetch folder name for breadcrumb ───────────────────────────────────
+  const [folderName, setFolderName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!transcription.folder_id) return;
+    const supabase = createClient();
+    supabase
+      .from("folders")
+      .select("name")
+      .eq("id", transcription.folder_id)
+      .single()
+      .then(({ data, error }) => {
+        if (data && !error) setFolderName(data.name);
+      });
+  }, [transcription.folder_id]);
+
   useEffect(() => {
     setTitleDraft(transcription.title);
   }, [transcription.title]);
-
-  useEffect(() => {
-    setTextDraft(transcription.clean_text || transcription.full_text || "");
-  }, [transcription.clean_text, transcription.full_text]);
 
   const audioUrl = useMemo(() => {
     if (!transcription.audio_storage_path) return null;
@@ -916,11 +925,14 @@ export function TranscriptionDetail({
     return data.publicUrl;
   }, [transcription.audio_storage_path]);
 
+  const handleTimeUpdate = useCallback((time: number) => {
+    setAudioTime(time);
+  }, []);
+
   const handleSeek = useCallback((time: number) => {
     seekRef.current?.(time);
   }, []);
 
-  // Realtime updates
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -973,19 +985,46 @@ export function TranscriptionDetail({
     setIsEditingTitle(false);
   }, [titleDraft, transcription.title, transcription.id]);
 
-  const handleSaveText = useCallback(async () => {
-    const supabase = createClient();
-    const field =
-      transcription.clean_text !== undefined ? "clean_text" : "full_text";
-    const { error } = await supabase
-      .from("transcriptions")
-      .update({ [field]: textDraft })
-      .eq("id", transcription.id);
-    if (!error) {
-      setTranscription((prev) => ({ ...prev, [field]: textDraft }));
-      setIsEditingText(false);
-    }
-  }, [textDraft, transcription.clean_text, transcription.id]);
+  const handleSaveSegment = useCallback(
+    async (segStart: number, newText: string) => {
+      const currentSegments =
+        transcription.segments_clean || transcription.segments;
+      if (!currentSegments) return;
+      const updated = currentSegments.map((seg) =>
+        seg.start === segStart ? { ...seg, text: newText } : seg,
+      );
+      const newFullText = updated.map((s) => s.text).join(" ");
+      const supabase = createClient();
+      const field =
+        transcription.segments_clean !== undefined
+          ? "segments_clean"
+          : "segments";
+      await supabase
+        .from("transcriptions")
+        .update({ [field]: updated, clean_text: newFullText })
+        .eq("id", transcription.id);
+      setTranscription((prev) => ({
+        ...prev,
+        [field]: updated,
+        clean_text: newFullText,
+      }));
+    },
+    [transcription],
+  );
+
+  const handleSavePlainText = useCallback(
+    async (newText: string) => {
+      const supabase = createClient();
+      const field =
+        transcription.clean_text !== undefined ? "clean_text" : "full_text";
+      await supabase
+        .from("transcriptions")
+        .update({ [field]: newText })
+        .eq("id", transcription.id);
+      setTranscription((prev) => ({ ...prev, [field]: newText }));
+    },
+    [transcription.clean_text, transcription.id],
+  );
 
   const handleDelete = useCallback(async () => {
     const supabase = createClient();
@@ -1023,13 +1062,10 @@ export function TranscriptionDetail({
     clean_text,
     segments_clean,
   } = transcription;
-
   const activeText = clean_text || full_text || "";
   const activeSegments = segments_clean || segments || undefined;
-
   const hasSpeakers = hasSpeakerDiarization(activeSegments);
   const hasSegments = !!activeSegments?.length;
-
   const isTranscribing = ["processing", "pending", "repairing"].includes(
     status,
   );
@@ -1038,6 +1074,71 @@ export function TranscriptionDetail({
 
   return (
     <div className="flex flex-col h-full px-6 md:px-8 py-8 max-w-5xl mx-auto w-full overflow-hidden">
+      {/* ── Breadcrumb ── */}
+      <nav
+        className="flex items-center gap-1.5 mb-5 flex-wrap"
+        aria-label="Breadcrumb"
+      >
+        {transcription.folder_id ? (
+          <>
+            <Link
+              href="/dashboard/folders"
+              className="text-[12px] md:text-[13px] text-muted-foreground hover:opacity-70 transition-opacity duration-150 truncate max-w-[120px]"
+              style={fontSyne}
+            >
+              folders
+            </Link>
+            <span
+              className="text-muted-foreground/30 text-[11px] md:text-[12px] select-none"
+              aria-hidden
+            >
+              &gt;
+            </span>
+            <Link
+              href={`/dashboard/folders/${transcription.folder_id}`}
+              className="text-[12px] md:text-[13px] text-muted-foreground hover:opacity-70 transition-opacity duration-150 truncate max-w-[160px]"
+              style={fontSyne}
+            >
+              {folderName || "…"}
+            </Link>
+            <span
+              className="text-muted-foreground/30 text-[11px] md:text-[12px] select-none"
+              aria-hidden
+            >
+              &gt;
+            </span>
+            <span
+              className="text-[12px] md:text-[13px] text-foreground font-semibold truncate max-w-[200px]"
+              style={fontSyne}
+            >
+              {title}
+            </span>
+          </>
+        ) : (
+          <>
+            <Link
+              href="/dashboard"
+              className="text-[12px] md:text-[13px] text-muted-foreground hover:opacity-70 transition-opacity duration-150"
+              style={fontSyne}
+            >
+              dashboard
+            </Link>
+            <span
+              className="text-muted-foreground/30 text-[11px] md:text-[12px] select-none"
+              aria-hidden
+            >
+              &gt;
+            </span>
+            <span
+              className="text-[12px] md:text-[13px] text-foreground font-semibold truncate max-w-[240px]"
+              style={fontSyne}
+            >
+              {title}
+            </span>
+          </>
+        )}
+      </nav>
+
       {/* ── Title row ── */}
       <div className="flex items-start justify-between gap-4 mb-4 flex-shrink-0">
         <div className="space-y-1 min-w-0 flex-1">
@@ -1054,13 +1155,12 @@ export function TranscriptionDetail({
               }}
               onBlur={handleRename}
               autoFocus
-              className="bg-transparent outline-none px-0 py-0.5 w-full max-w-xl"
+              className="bg-transparent outline-none focus:bg-[#F0EEEB]/60 rounded-sm px-1 -mx-1 py-0.5 w-full max-w-xl transition-colors duration-150"
               style={{
                 ...fontSyne,
                 fontWeight: 800,
                 fontSize: "clamp(1.3rem, 2.5vw, 1.6rem)",
                 letterSpacing: "-0.035em",
-                borderBottom: `1px solid ${B}`,
                 color: "#0D0D0D",
               }}
             />
@@ -1080,8 +1180,6 @@ export function TranscriptionDetail({
               {title}
             </h1>
           )}
-
-          {/* Status for non-completed */}
           {!showResults && (
             <div
               style={{
@@ -1096,10 +1194,9 @@ export function TranscriptionDetail({
           )}
         </div>
 
-        {/* Toolbar — responsive grouping */}
         {showResults && (
           <Toolbar
-            onEditText={() => setIsEditingText(true)}
+            onEditText={() => setEditMode((v) => !v)}
             onRename={() => setIsEditingTitle(true)}
             onDownload={handleDownloadAudio}
             canDownload={!!audioUrl}
@@ -1117,16 +1214,51 @@ export function TranscriptionDetail({
         )}
       </div>
 
-      {/* ── Stat strip — only when completed ── */}
+      {/* ── Edit mode hint bar ── */}
+      {showResults && editMode && (
+        <div
+          className="mb-3 flex-shrink-0 flex items-center justify-between"
+          style={{ borderBottom: `1px solid ${B}20`, paddingBottom: 8 }}
+        >
+          <p
+            style={{
+              ...fontMono,
+              fontSize: 10,
+              color: B,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            editing — click any segment to edit
+          </p>
+          <button
+            onClick={() => setEditMode(false)}
+            className="flex items-center gap-1 transition-all duration-150 outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset focus-visible:rounded-sm focus-visible:bg-[#F0EEEB]/50 hover:opacity-70"
+            style={{
+              ...fontMono,
+              fontSize: 10,
+              color: "#AAA8A4",
+              letterSpacing: "0.06em",
+            }}
+          >
+            <X size={10} />
+            done
+          </button>
+        </div>
+      )}
+
+      {/* ── Stat strip ── */}
       {showResults && (
         <div className="mb-5 flex-shrink-0">
-          <StatStrip
-            duration_seconds={duration_seconds}
-            word_count={word_count}
-            language={language}
-            segments={activeSegments}
-            created_at={created_at}
-          />
+          <p style={{ ...fontMono, fontSize: 11, letterSpacing: "0.04em", color: "#AAA8A4" }}>
+            {[
+              formatRelativeTime(created_at),
+              duration_seconds ? formatDuration(duration_seconds) : null,
+              word_count ? `${word_count.toLocaleString()} words` : null,
+              language ? language.toUpperCase() : null,
+              getSpeakerCount(activeSegments) >= 2 ? `${getSpeakerCount(activeSegments)} speakers` : null,
+            ].filter(Boolean).join(" · ")}
+          </p>
         </div>
       )}
 
@@ -1137,8 +1269,8 @@ export function TranscriptionDetail({
 
         {showResults && (
           <div className="flex flex-col flex-1 min-h-0 gap-4">
-            {/* Speaker toggle */}
-            {hasSpeakers && !isEditingText && (
+            {/* Speaker toggle — hidden in edit mode */}
+            {hasSpeakers && !editMode && (
               <div
                 className="flex items-center gap-1 rounded-lg p-1 w-fit flex-shrink-0"
                 style={{ background: "#F0EEEB" }}
@@ -1161,7 +1293,7 @@ export function TranscriptionDetail({
                     key={id}
                     onClick={() => setSpeakerView(id === "speaker")}
                     className={cn(
-                      "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all duration-150",
+                      "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all duration-150 outline-none focus-visible:ring-1 focus-visible:ring-[#0D0D0D]/10 focus-visible:ring-inset",
                       active
                         ? "bg-white text-[#0D0D0D] shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
@@ -1181,7 +1313,6 @@ export function TranscriptionDetail({
 
             {/* Transcript area */}
             <div className="relative flex-1 min-h-0">
-              {/* Top fade */}
               <div
                 className="absolute top-0 inset-x-0 h-20 z-10 pointer-events-none"
                 style={{
@@ -1191,58 +1322,21 @@ export function TranscriptionDetail({
               />
 
               <div className="h-full overflow-y-auto py-6 pr-2">
-                {isEditingText ? (
-                  <div className="h-full flex flex-col max-w-prose">
-                    <textarea
-                      value={textDraft}
-                      onChange={(e) => setTextDraft(e.target.value)}
-                      className="flex-1 min-h-[200px] w-full resize-none rounded-xl p-4 text-sm text-foreground leading-[1.85] outline-none transition-colors"
-                      style={{
-                        background: "#F0EEEB",
-                        border: "1px solid #E2E0DB",
-                      }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = B)}
-                      onBlur={(e) =>
-                        (e.currentTarget.style.borderColor = "#E2E0DB")
-                      }
-                    />
-                    <div className="flex items-center justify-end gap-2 mt-4 flex-shrink-0">
-                      <button
-                        onClick={() => {
-                          setTextDraft(activeText);
-                          setIsEditingText(false);
-                        }}
-                        className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors hover:bg-[#F0EEEB]"
-                        style={{
-                          color: "#6B6966",
-                          ...fontMono,
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveText}
-                        className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-white transition-opacity hover:opacity-80 active:scale-[.97]"
-                        style={{
-                          background: "#0D0D0D",
-                          ...fontMono,
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        Save changes
-                      </button>
-                    </div>
-                  </div>
-                ) : hasSegments ? (
+                {hasSegments ? (
                   <InlineTranscript
                     segments={activeSegments!}
-                    showSpeakers={speakerView && hasSpeakers}
+                    showSpeakers={speakerView && hasSpeakers && !editMode}
                     activeTime={audioTime}
                     onSeek={handleSeek}
+                    editMode={editMode}
+                    onSaveSegment={handleSaveSegment}
                   />
                 ) : activeText ? (
-                  <PlainTranscript text={activeText} />
+                  <PlainTranscript
+                    text={activeText}
+                    editMode={editMode}
+                    onSave={handleSavePlainText}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground py-8">
                     Transcription completed but no text was returned.
@@ -1250,7 +1344,6 @@ export function TranscriptionDetail({
                 )}
               </div>
 
-              {/* Bottom fade */}
               <div
                 className="absolute bottom-0 inset-x-0 h-20 z-10 pointer-events-none"
                 style={{
@@ -1263,15 +1356,13 @@ export function TranscriptionDetail({
         )}
       </div>
 
-      {/* ── Audio Player ── */}
       <Player
         src={audioUrl}
-        onTimeUpdate={setAudioTime}
+        onTimeUpdate={handleTimeUpdate}
         seekRef={seekRef}
-        visible={showResults && !showMobileActions}
+        visible={!!audioUrl}
       />
 
-      {/* ── Dialogs ── */}
       <ConfirmDialog
         open={showDeleteDialog}
         title="Delete transcription"

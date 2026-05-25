@@ -496,33 +496,20 @@ export function UploadModal({
                     <div className="flex flex-col items-center">
                       <div
                         className={cn(
-                          "w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                          "border transition-all duration-500",
+                          "w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0 mt-0.5 relative",
+                          "transition-all duration-500",
                           isCompleted
-                            ? "bg-foreground border-foreground"
+                            ? "bg-[#2563EB]"
                             : isActive
-                              ? "border-foreground/40 bg-foreground/[0.06]"
-                              : "border-border/25 bg-transparent",
+                              ? ""
+                              : "border border-border/25",
                         )}
                       >
-                        {isCompleted && (
-                          <svg
-                            width="9"
-                            height="7"
-                            viewBox="0 0 9 7"
-                            fill="none"
-                          >
-                            <path
-                              d="M1 3.5L3.2 5.8L8 1"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        )}
                         {isActive && (
-                          <div className="w-1.5 h-1.5 rounded-full bg-foreground animate-pulse" />
+                          <>
+                            <span className="absolute w-[18px] h-[18px] rounded-full bg-[#2563EB] opacity-40 animate-ping" />
+                            <span className="w-2 h-2 rounded-full bg-[#2563EB]" />
+                          </>
                         )}
                       </div>
                       {i < STEPS.length - 1 && (

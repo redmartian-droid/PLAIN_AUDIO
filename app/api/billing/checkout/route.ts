@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 const requiredEnvVars = [
   "APP_BASE_URL",
   "POLAR_ACCESS_TOKEN",
-  "NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID",
+  "NEXT_PUBLIC_POLAR_PRO_MONTHLY_PRODUCT_ID",
+  "NEXT_PUBLIC_POLAR_PRO_ANNUAL_PRODUCT_ID",
 ];
 
 for (const envVar of requiredEnvVars) {
@@ -14,7 +15,7 @@ for (const envVar of requiredEnvVars) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
 
   const {
@@ -23,6 +24,17 @@ export async function GET() {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Get interval from query params (monthly or annual), default to monthly
+  const requestUrl = new URL(request.url);
+  const interval = requestUrl.searchParams.get("interval") || "monthly";
+
+  if (interval !== "monthly" && interval !== "annual") {
+    return NextResponse.json(
+      { error: "Invalid interval. Must be 'monthly' or 'annual'." },
+      { status: 400 },
+    );
   }
 
   // check if user already has a Polar customer ID
@@ -36,8 +48,8 @@ export async function GET() {
 
   // Validate APP_BASE_URL is HTTPS and well-formed
   try {
-    const parsedUrl = new URL(appUrl);
-    if (parsedUrl.protocol !== "https:") {
+    const parsedAppUrl = new URL(appUrl);
+    if (parsedAppUrl.protocol !== "https:") {
       throw new Error("APP_BASE_URL must use HTTPS");
     }
   } catch (e) {
@@ -48,8 +60,14 @@ export async function GET() {
     );
   }
 
+  // Select the correct product ID based on interval
+  const productId =
+    interval === "annual"
+      ? process.env.NEXT_PUBLIC_POLAR_PRO_ANNUAL_PRODUCT_ID
+      : process.env.NEXT_PUBLIC_POLAR_PRO_MONTHLY_PRODUCT_ID;
+
   const body: Record<string, any> = {
-    product_id: process.env.NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID,
+    product_id: productId,
     customer_email: user.email,
     success_url: `${appUrl}/dashboard/settings?upgraded=1`,
     cancel_url: `${appUrl}/dashboard/settings?upgraded=0`,
@@ -93,9 +111,9 @@ export async function GET() {
     );
   }
 
-  const { url } = await res.json();
+  const { url: checkoutUrl } = await res.json();
 
-  if (!url || typeof url !== "string") {
+  if (!checkoutUrl || typeof checkoutUrl !== "string") {
     console.error("Invalid checkout URL from Polar");
     return NextResponse.json(
       { error: "Invalid checkout response" },
@@ -104,16 +122,17 @@ export async function GET() {
   }
 
   try {
-    const checkoutUrl = new URL(url);
-
-    const isProd = process.env.POLAR_ENV === "production";
+    const parsedCheckoutUrl = new URL(checkoutUrl);
 
     const isValidPolarUrl = isProd
-      ? checkoutUrl.hostname === "polar.sh"
-      : checkoutUrl.hostname === "sandbox.polar.sh";
+      ? parsedCheckoutUrl.hostname === "polar.sh"
+      : parsedCheckoutUrl.hostname === "sandbox.polar.sh";
 
     if (!isValidPolarUrl) {
-      console.error("Checkout URL is not from Polar:", checkoutUrl.hostname);
+      console.error(
+        "Checkout URL is not from Polar:",
+        parsedCheckoutUrl.hostname,
+      );
 
       return NextResponse.json(
         { error: "Invalid checkout URL" },
@@ -129,5 +148,5 @@ export async function GET() {
     );
   }
 
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(checkoutUrl);
 }

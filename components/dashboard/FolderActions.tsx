@@ -3,13 +3,21 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Pencil, Trash2, AlertTriangle, MoreHorizontal, X } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  MoreHorizontal,
+  X,
+  Check,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
 
 const fontSyne = {
   fontFamily: "var(--font-syne,'Helvetica Neue',sans-serif)",
 } as const;
+
 const fontMono = {
   fontFamily: "var(--font-mono,'Courier New',monospace)",
 } as const;
@@ -63,7 +71,6 @@ function ActionsSheet({
   onRename: () => void;
   onDelete: () => void;
 }) {
-  // Lock body scroll while sheet is open
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -74,7 +81,6 @@ function ActionsSheet({
 
   return (
     <>
-      {/* Scrim */}
       <div
         className="fixed inset-0 z-[60] sm:hidden"
         style={{
@@ -89,7 +95,6 @@ function ActionsSheet({
         aria-hidden
       />
 
-      {/* Sheet */}
       <div
         className="fixed bottom-0 left-0 right-0 z-[60] sm:hidden flex flex-col"
         style={{
@@ -105,7 +110,6 @@ function ActionsSheet({
         aria-modal="true"
         aria-label="Folder actions"
       >
-        {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div
             className="w-9 h-1 rounded-full"
@@ -113,7 +117,6 @@ function ActionsSheet({
           />
         </div>
 
-        {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-3"
           style={{ borderBottom: "1px solid #E2E0DB" }}
@@ -133,7 +136,6 @@ function ActionsSheet({
           </button>
         </div>
 
-        {/* Action rows */}
         <div className="p-3 flex flex-col gap-1">
           <button
             onClick={() => {
@@ -172,183 +174,6 @@ function ActionsSheet({
               Delete folder
             </span>
           </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Rename Dialog ────────────────────────────────────────────────────────────
-
-function RenameDialog({
-  open,
-  nameDraft,
-  setNameDraft,
-  onSave,
-  onCancel,
-}: {
-  open: boolean;
-  nameDraft: string;
-  setNameDraft: (v: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
-}) {
-  if (!open) return null;
-
-  return (
-    <>
-      {/* Mobile: Bottom Sheet */}
-      <div
-        className="fixed inset-0 z-[70] sm:hidden"
-        style={{
-          background: "rgba(0,0,0,0.25)",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 320ms ease",
-        }}
-        onClick={onCancel}
-        aria-hidden
-      />
-
-      <div
-        className="fixed bottom-0 left-0 right-0 z-[70] sm:hidden flex flex-col"
-        style={{
-          background: "#F8F7F4",
-          borderRadius: "20px 20px 0 0",
-          borderTop: "1px solid #E2E0DB",
-          transform: open ? "translateY(0)" : "translateY(100%)",
-          transition: "transform 400ms cubic-bezier(0.32,0.72,0,1)",
-          paddingBottom: "env(safe-area-inset-bottom, 16px)",
-          boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
-        }}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="flex justify-center pt-3 pb-2 shrink-0">
-          <div
-            className="w-9 h-1 rounded-full"
-            style={{ background: "#E2E0DB" }}
-          />
-        </div>
-
-        <div
-          className="px-5 pt-2 pb-6"
-          style={{
-            opacity: open ? 1 : 0,
-            transform: open ? "translateY(0)" : "translateY(10px)",
-            transition: open
-              ? "opacity 300ms ease 80ms, transform 300ms cubic-bezier(0.32,0.72,0,1) 80ms"
-              : "opacity 100ms ease, transform 100ms ease",
-          }}
-        >
-          <h3
-            className="text-[15px] font-semibold text-foreground mb-4"
-            style={fontSyne}
-          >
-            Rename Folder
-          </h3>
-          <input
-            value={nameDraft}
-            onChange={(e) => setNameDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onSave();
-              if (e.key === "Escape") onCancel();
-            }}
-            autoFocus
-            className="w-full px-4 py-3 rounded-xl text-[15px] text-foreground outline-none"
-            style={{ background: "#F0EEEB", border: "1px solid #E2E0DB" }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "#D63558")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "#E2E0DB")}
-          />
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-colors hover:bg-[#F0EEEB]"
-              style={{ color: "#6B6966", ...fontMono }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onSave}
-              className="px-4 py-2.5 rounded-xl text-[13px] font-medium text-white transition-opacity hover:opacity-80 active:scale-[.97]"
-              style={{ background: "#0D0D0D", ...fontMono }}
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop: Centered Modal */}
-      <div
-        className="hidden sm:flex fixed inset-0 z-[70] items-center justify-center p-4"
-        style={{
-          background: "rgba(0,0,0,0.35)",
-          backdropFilter: "blur(4px)",
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 200ms ease",
-        }}
-      >
-        <div
-          className="w-full max-w-sm rounded-xl overflow-hidden"
-          style={{
-            background: "#F8F7F4",
-            border: "1px solid #E2E0DB",
-            boxShadow:
-              "0 12px 40px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)",
-            transform: open ? "scale(1)" : "scale(0.96)",
-            opacity: open ? 1 : 0,
-            transition:
-              "transform 200ms cubic-bezier(0.32,0.72,0,1), opacity 200ms ease",
-          }}
-        >
-          <div className="px-5 pt-5 pb-4">
-            <h3
-              className="text-[14px] font-semibold text-foreground leading-snug"
-              style={fontSyne}
-            >
-              Rename Folder
-            </h3>
-            <input
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onSave();
-                if (e.key === "Escape") onCancel();
-              }}
-              autoFocus
-              className="w-full px-3 py-2 rounded-lg text-sm text-foreground outline-none mt-3"
-              style={{ background: "#F0EEEB", border: "1px solid #E2E0DB" }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#D63558")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#E2E0DB")}
-            />
-          </div>
-          <div
-            className="flex items-center justify-end gap-2 px-5 py-3"
-            style={{ background: "#F0EEEB", borderTop: "1px solid #E2E0DB" }}
-          >
-            <button
-              onClick={onCancel}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors hover:bg-[#E8E5E1] active:scale-[.97]"
-              style={{ color: "#6B6966", ...fontMono, letterSpacing: "0.04em" }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onSave}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-white transition-colors hover:opacity-80 active:scale-[.97]"
-              style={{
-                background: "#0D0D0D",
-                ...fontMono,
-                letterSpacing: "0.04em",
-              }}
-            >
-              Save
-            </button>
-          </div>
         </div>
       </div>
     </>
@@ -543,40 +368,16 @@ function DeleteDialog({
 
 export function FolderActions({
   folderId,
-  folderName,
+  onStartRename,
 }: {
   folderId: string;
-  folderName: string;
+  onStartRename: () => void;
 }) {
   const router = useRouter();
   const supabase = createClient();
 
   const [showActionsSheet, setShowActionsSheet] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [nameDraft, setNameDraft] = useState(folderName);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  useEffect(() => {
-    setNameDraft(folderName);
-  }, [folderName]);
-
-  const handleRename = async () => {
-    const trimmed = nameDraft.trim();
-    if (!trimmed || trimmed === folderName) {
-      setIsRenaming(false);
-      setNameDraft(folderName);
-      return;
-    }
-    const { error } = await supabase
-      .from("folders")
-      .update({ name: trimmed })
-      .eq("id", folderId);
-
-    if (!error) {
-      setIsRenaming(false);
-      router.refresh();
-    }
-  };
 
   const handleDelete = async () => {
     await supabase
@@ -607,7 +408,7 @@ export function FolderActions({
 
       {/* Desktop: individual icon buttons */}
       <div className="hidden sm:flex items-center gap-1.5">
-        <ActionBtn onClick={() => setIsRenaming(true)} label="Rename folder">
+        <ActionBtn onClick={onStartRename} label="Rename folder">
           <Pencil size={15} />
         </ActionBtn>
         <ActionBtn
@@ -622,18 +423,13 @@ export function FolderActions({
       <ActionsSheet
         open={showActionsSheet}
         onClose={() => setShowActionsSheet(false)}
-        onRename={() => setIsRenaming(true)}
-        onDelete={() => setShowDeleteDialog(true)}
-      />
-
-      <RenameDialog
-        open={isRenaming}
-        nameDraft={nameDraft}
-        setNameDraft={setNameDraft}
-        onSave={handleRename}
-        onCancel={() => {
-          setNameDraft(folderName);
-          setIsRenaming(false);
+        onRename={() => {
+          setShowActionsSheet(false);
+          onStartRename();
+        }}
+        onDelete={() => {
+          setShowActionsSheet(false);
+          setShowDeleteDialog(true);
         }}
       />
 

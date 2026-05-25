@@ -155,11 +155,42 @@
   background: #b8b3a8;
 }
 
-/* Focus ring */
+/* Remove all focus rings - Apple style (minimal, no distractions) */
+*:focus,
 *:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Disable focus ring on all interactive elements */
+button:focus,
+button:focus-visible,
+a:focus,
+a:focus-visible,
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Override Tailwind focus-ring utilities */
+textarea:focus-visible,
+input:focus-visible {
+  --tw-ring-offset-shadow: none !important;
+  --tw-ring-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Remove outline from all elements */
+* {
+  outline: none !important;
 }
 
 /* Dot grid background pattern */
@@ -366,7 +397,36 @@
   --brand-red-lighter: rgba(214, 53, 88, 0.04);
   --border-warm: #e2e0db;
   --border-hover: #d8d6d1;
-  --bg-hover: #f0eeeb;
+  --bg-hover: #fce8ee; /* suggested hover tone */
+  --ui-hover: #fce8ee; /* sidebar/header hover */
+  --ui-active: var(--ui-hover); /* selected uses same hover tone */
+}
+
+/* Sidebar & header menu: use a subtle pink hover/active tone */
+aside a.group:hover,
+aside button.group:hover,
+aside nav a:hover,
+aside nav button:hover,
+header a.group:hover,
+header button.group:hover,
+header nav a:hover,
+.fixed[role="dialog"] a:hover {
+  background-color: var(--ui-hover) !important;
+}
+
+aside a[aria-current="page"],
+header a[aria-current="page"],
+aside a.group[aria-current="page"],
+header a.group[aria-current="page"],
+aside .group[aria-current="page"],
+header .group[aria-current="page"] {
+  background-color: var(--ui-hover) !important;
+}
+
+/* Mobile sheet/drawer overrides */
+.fixed[role="dialog"] nav a:hover,
+.fixed[role="dialog"] nav a[aria-current="page"] {
+  background-color: var(--ui-hover) !important;
 }
 
 /* ── Typography: Section labels (monospace eyebrows) ────────────────────── */

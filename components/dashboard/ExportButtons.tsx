@@ -209,33 +209,35 @@ export function ExportButtons({ transcription }: ExportButtonsProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls="export-menu"
+        aria-label="Export"
         className={cn(
-          "flex items-center gap-2 min-h-[44px] px-4",
-          "bg-[#D63558] text-white text-sm font-semibold rounded-xl",
+          "inline-flex items-center justify-center gap-2 shrink-0",
+          "size-11 sm:min-h-[44px] sm:w-auto sm:px-4",
+          "bg-[#D63558] text-white font-semibold rounded-xl text-sm",
           "[transition:background-color_150ms_ease,box-shadow_150ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
           "hover:bg-[#D63558]/80 hover:shadow-md hover:-translate-y-0.5",
           "active:scale-[.97] active:shadow-none active:translate-y-0",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558]/50",
         )}
       >
         {justDone ? (
           <Check
-            size={14}
+            size={17}
             aria-hidden
             className="[transition:opacity_200ms_ease]"
           />
         ) : (
           <Download
-            size={14}
+            size={17}
             aria-hidden
             className="[transition:opacity_200ms_ease]"
           />
         )}
-        Export
+        <span className="hidden sm:inline">Export</span>
         <ChevronDown
           size={14}
           aria-hidden
           className={cn(
+            "hidden sm:block",
             "[transition:transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
             open && "rotate-180",
           )}

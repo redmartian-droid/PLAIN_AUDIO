@@ -12,7 +12,7 @@ export function BlogPreview() {
       <div className="max-w-6xl mx-auto px-6 py-40">
         <div className="flex items-end justify-between mb-20">
           <div>
-            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#aaa] mb-6">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#D63558] mb-6">
               Writing
             </p>
             <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">

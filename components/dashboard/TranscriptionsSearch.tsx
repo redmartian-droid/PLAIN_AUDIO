@@ -157,9 +157,9 @@ export function TranscriptionsSearch({
   }
 
   return (
-    <>
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 sm:mb-8 animate-fade-up">
+      <div className="shrink-0 flex items-center justify-between mb-6 sm:mb-8 animate-fade-up">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-1">
             All transcriptions
@@ -172,7 +172,7 @@ export function TranscriptionsSearch({
       </div>
 
       {/* Search */}
-      <div className="mb-6 animate-fade-up [animation-delay:40ms] relative">
+      <div className="shrink-0 mb-6 animate-fade-up [animation-delay:40ms] relative">
         <Search
           size={16}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
@@ -209,32 +209,34 @@ export function TranscriptionsSearch({
 
       {/* Empty — no results */}
       {searchQuery && transcriptions.length === 0 ? (
-        <div className="mt-24 text-center animate-fade-up space-y-4">
-          <p className="text-sm text-muted-foreground">
-            No results for "{searchQuery}"
-          </p>
-          <button
-            onClick={() => setSearchQuery("")}
-            className={cn(
-              "inline-flex items-center gap-2",
-              "bg-primary text-primary-foreground",
-              "text-sm font-semibold px-5 py-3 rounded-xl",
-              "[transition:background-color_200ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1),box-shadow_200ms_ease]",
-              "hover:bg-primary/90 hover:shadow-sm",
-              "active:scale-[.97] active:shadow-none",
-            )}
-          >
-            Clear search
-          </button>
+        <div className="flex-1 flex items-center justify-center animate-fade-up">
+          <div className="text-center space-y-4">
+            <p className="text-sm text-muted-foreground">
+              No results for "{searchQuery}"
+            </p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className={cn(
+                "inline-flex items-center gap-2",
+                "bg-primary text-primary-foreground",
+                "text-sm font-semibold px-5 py-3 rounded-xl",
+                "[transition:background-color_200ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1),box-shadow_200ms_ease]",
+                "hover:bg-primary/90 hover:shadow-sm",
+                "active:scale-[.97] active:shadow-none",
+              )}
+            >
+              Clear search
+            </button>
+          </div>
         </div>
       ) : !transcriptions || transcriptions.length === 0 ? (
-        <div className="mt-24 text-center animate-fade-up">
+        <div className="flex-1 flex items-center justify-center animate-fade-up">
           <p className="text-sm text-muted-foreground">0 transcriptions</p>
         </div>
       ) : (
         <>
           {/* Select-all — sits outside the scroll area */}
-          <div className="flex items-center gap-2.5 mb-2 px-1">
+          <div className="shrink-0 flex items-center gap-2.5 mb-2 px-1">
             <button
               onClick={() => toggleAll(allIds)}
               aria-label={
@@ -270,7 +272,7 @@ export function TranscriptionsSearch({
           </div>
 
           {/* Scroll container with fades */}
-          <div className="relative">
+          <div className="flex-1 min-h-0 relative">
             {/* Top fade */}
             <div
               aria-hidden="true"
@@ -286,7 +288,7 @@ export function TranscriptionsSearch({
             <div
               ref={scrollRef}
               onScroll={updateFades}
-              className="max-h-[calc(100vh-280px)] overflow-y-auto pr-0.5 scrollbar-hidden"
+              className="h-full overflow-y-auto pr-0.5 scrollbar-hidden"
             >
               <div className="space-y-2 stagger-children py-0.5">
                 {isLoading ? (
@@ -323,13 +325,14 @@ export function TranscriptionsSearch({
       )}
 
       <BulkActionsBar
+        className="shrink-0"
         count={count}
         onClear={clear}
         onExport={handleBulkExport}
         onMove={handleBulkMove}
         onDelete={handleBulkDelete}
       />
-    </>
+    </div>
   );
 }
 

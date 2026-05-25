@@ -32,5 +32,9 @@ export default async function TranscriptionPage({
 
   if (error || !transcription) notFound();
 
-  return <TranscriptionDetail transcription={transcription} />;
+  return (
+    <TranscriptionDetail
+      transcription={transcription}
+    />
+  );
 }

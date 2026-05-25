@@ -221,7 +221,7 @@ export default async function DashboardPage() {
 
         {/* ── Folders ── */}
         {hasFolders && (
-          <div className="mb-6 sm:mb-10 animate-fade-up [animation-delay:100ms] shrink-0">
+          <div className="mb-4 sm:mb-6 animate-fade-up [animation-delay:100ms] shrink-0">
             <SectionEyebrow
               label="Folders"
               href="/dashboard/folders"

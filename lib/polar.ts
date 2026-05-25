@@ -23,8 +23,8 @@ export const PLANS = {
       "Permanent storage",
       "Priority processing",
     ],
-    priceMonthly: 12,
-    priceAnnual: 99,
+    priceMonthly: 18,
+    priceAnnual: 162,
   },
 } as const;
 

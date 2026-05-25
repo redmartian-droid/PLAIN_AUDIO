@@ -181,7 +181,10 @@ export function TranscriptionRow({
           </p>
 
           {/* Mobile metadata */}
-          <div className="flex sm:hidden items-center gap-2 mt-1 text-[12px] text-muted-foreground/50">
+          <div
+            className="flex sm:hidden items-center gap-2 mt-1 text-[11px] text-muted-foreground/50"
+            style={{ fontFamily: "var(--font-mono,'Courier New',monospace)" }}
+          >
             <span>{formatRelativeTime(t.created_at)}</span>
             {t.duration_seconds ? (
               <>
@@ -202,11 +205,12 @@ export function TranscriptionRow({
           <div
             className={cn(
               "flex items-center gap-2",
-              "text-[12px] tabular-nums",
+              "text-[11px] tabular-nums",
               "text-muted-foreground/40",
               "transition-colors duration-150",
               "group-hover:text-muted-foreground/65",
             )}
+            style={{ fontFamily: "var(--font-mono,'Courier New',monospace)" }}
           >
             <span>{formatRelativeTime(t.created_at)}</span>
 

@@ -57,7 +57,7 @@ function InlineFolderCard({
           if (e.key === "Enter") handleConfirm();
           if (e.key === "Escape") onCancel();
         }}
-        className="w-28 text-center bg-transparent text-xs font-medium placeholder:text-muted-foreground/60 focus:outline-none border-b border-border focus:border-foreground pb-0.5"
+        className="w-28 text-center bg-transparent text-xs font-medium placeholder:text-muted-foreground/60 outline-none transition-colors duration-150 rounded-sm px-1 py-0.5 focus:bg-[#F0EEEB]/40"
       />
       <div className="flex gap-1 mt-2">
         <button
