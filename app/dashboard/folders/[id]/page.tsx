@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
 import { ChevronRight, AlertCircle, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -34,8 +34,12 @@ interface Transcription {
   created_at: string;
 }
 
-export default function FolderPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function FolderPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
   const supabase = createClient();
   const [folder, setFolder] = useState<Folder | null>(null);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
