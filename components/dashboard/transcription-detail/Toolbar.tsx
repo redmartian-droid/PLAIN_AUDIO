@@ -196,6 +196,7 @@ interface ToolbarProps {
   onDelete: () => void;
   showMobileActions: boolean;
   onMobileActionsChange: (open: boolean) => void;
+  plan?: "free" | "pro";
   transcription: {
     id: string;
     title: string;
@@ -219,6 +220,7 @@ export function Toolbar({
   showMobileActions,
   onMobileActionsChange,
   transcription,
+  plan,
 }: ToolbarProps) {
   return (
     <div className="flex-shrink-0 flex items-center gap-2 pt-0.5">
@@ -231,6 +233,7 @@ export function Toolbar({
             full_text: transcription.full_text,
             segments: transcription.segments ?? null,
           }}
+          plan={plan}
         />
         <ToolbarBtn
           onClick={() => onMobileActionsChange(true)}
@@ -329,6 +332,7 @@ export function Toolbar({
             full_text: transcription.full_text,
             segments: transcription.segments ?? null,
           }}
+          plan={plan}
         />
       </div>
     </div>

@@ -79,45 +79,55 @@ function InlineFolderCard({
 }
 
 /* ─── Mobile List Row ─── */
-function FolderListRow({
-  folder,
-  isLast,
-}: {
-  folder: FolderItem;
-  isLast: boolean;
-}) {
+function FolderListRow({ folder }: { folder: FolderItem }) {
+  const metadataParts: string[] = [];
+  if (folder.created_at)
+    metadataParts.push(formatRelativeTime(folder.created_at));
+  if (folder.transcriptionCount > 0)
+    metadataParts.push(
+      `${folder.transcriptionCount.toLocaleString()} item${folder.transcriptionCount === 1 ? "" : "s"}`,
+    );
+  const metadata = metadataParts.slice(0, 2).join(" · ");
+
   return (
     <Link
       href={`/dashboard/folders/${folder.id}`}
       className={cn(
-        "group flex items-center gap-3 min-h-[44px] py-2.5",
-        "active:opacity-60 transition-opacity",
-        !isLast && "border-b border-border/40",
+        "group flex items-center gap-3 min-w-0",
+        "rounded-lg border border-transparent",
+        "py-3 px-4",
+        "transition-[background-color,border-color,transform] duration-[140ms] ease-out",
+        "active:bg-[#EBE9E4] active:scale-[0.985] active:duration-75",
+        "hover:bg-[#F0EEEB]/50",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
       )}
     >
       <FolderIcon className="w-5 h-5 shrink-0" />
+
       <div className="flex-1 min-w-0">
-        <p
-          className="text-[13px] font-medium truncate"
-          style={{ color: "#0D0D0D" }}
-        >
+        <p className="truncate text-[14px] font-medium text-[#0D0D0D] leading-[1.25]">
           {folder.name}
         </p>
-        <p
-          className="text-[11px] mt-0.5"
-          style={{ ...fontMono, color: "#AAA8A4" }}
-        >
-          {formatRelativeTime(folder.created_at)}
-          {folder.transcriptionCount > 0 &&
-            ` · ${folder.transcriptionCount} item${folder.transcriptionCount !== 1 ? "s" : ""}`}
-        </p>
+        {metadata && (
+          <p
+            className="truncate text-[11px] text-[#AAA8A4] mt-[2px] leading-[1.25]"
+            style={fontMono}
+          >
+            {metadata}
+          </p>
+        )}
       </div>
+
       {folder.is_default && (
-        <span className="text-[9px] uppercase tracking-wider text-emerald-600 font-medium shrink-0">
+        <span className="shrink-0 text-[9px] uppercase tracking-wider text-emerald-600 font-medium">
           Default
         </span>
       )}
-      <ChevronRight size={14} className="shrink-0 text-muted-foreground/30" />
+
+      <ChevronRight
+        size={14}
+        className="shrink-0 text-muted-foreground/30 transition-opacity duration-150 group-hover:text-muted-foreground/60"
+      />
     </Link>
   );
 }
@@ -220,7 +230,7 @@ export function FoldersContent({
         </button>
       </div>
 
-      {/* Search — full width like TranscriptionsSearch */}
+      {/* Search */}
       <div className="flex sm:block items-center gap-2 mb-4">
         <div className="flex-1 relative">
           <Search
@@ -279,21 +289,17 @@ export function FoldersContent({
       </div>
 
       {/* Mobile: List View */}
-      <div className="sm:hidden flex flex-col">
+      <div className="sm:hidden flex flex-col gap-1">
         {inlineNew && (
-          <div className="py-4 border-b border-border/40">
+          <div className="py-4">
             <InlineFolderCard
               onConfirm={handleCreate}
               onCancel={() => setInlineNew(false)}
             />
           </div>
         )}
-        {filtered.map((folder, i) => (
-          <FolderListRow
-            key={folder.id}
-            folder={folder}
-            isLast={i === filtered.length - 1}
-          />
+        {filtered.map((folder) => (
+          <FolderListRow key={folder.id} folder={folder} />
         ))}
       </div>
 

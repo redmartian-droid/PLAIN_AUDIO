@@ -1,12 +1,12 @@
 export const PLANS = {
   free: {
     name: "Free",
-    dailyLimit: 3,
+    dailyLimit: 5,
     maxFileSizeMB: 25,
     features: [
-      "3 transcriptions/day",
+      "5 transcriptions/day",
       "25MB file limit",
-      "Basic export (TXT)",
+      "Basic export (TXT, VTT)",
       "7-day storage",
     ],
   },
@@ -17,7 +17,7 @@ export const PLANS = {
     features: [
       "Unlimited transcriptions",
       "500MB file limit",
-      "All export formats (TXT, SRT, PDF)",
+      "All export formats (TXT, SRT, VTT, DOC)",
       "Speaker diarization",
       "AI summaries",
       "Permanent storage",

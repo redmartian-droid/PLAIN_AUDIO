@@ -228,37 +228,39 @@ export default async function DashboardPage() {
               linkLabel="View all"
             />
 
-            {/* Mobile: compact iOS-style list rows */}
-            <div className="sm:hidden flex flex-col">
-              {recentFolders!.map((folder, i) => (
+            {/* Mobile: compact rows */}
+            <div className="sm:hidden flex flex-col gap-1">
+              {recentFolders!.map((folder) => (
                 <Link
                   key={folder.id}
                   href={`/dashboard/folders/${folder.id}`}
                   className={cn(
-                    "group flex items-center gap-3 min-h-[44px] py-2.5",
-                    "active:opacity-60 transition-opacity",
-                    i !== recentFolders!.length - 1 &&
-                      "border-b border-border/40",
+                    "group flex items-center gap-3 min-w-0",
+                    "rounded-lg border border-transparent",
+                    "py-3 px-4",
+                    "transition-[background-color,border-color,transform] duration-[140ms] ease-out",
+                    "active:bg-[#EBE9E4] active:scale-[0.985] active:duration-75",
+                    "hover:bg-[#F0EEEB]/50",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   )}
                 >
                   <FolderIcon className="w-5 h-5 shrink-0" />
+
                   <div className="flex-1 min-w-0">
-                    <p
-                      className="text-[13px] font-medium truncate"
-                      style={{ color: "#0D0D0D" }}
-                    >
+                    <p className="truncate text-[14px] font-medium text-[#0D0D0D] leading-[1.25]">
                       {folder.name}
                     </p>
                     <p
-                      className="text-[11px] mt-0.5"
-                      style={{ ...fontMono, color: "#AAA8A4" }}
+                      className="truncate text-[11px] text-[#AAA8A4] mt-[2px] leading-[1.25]"
+                      style={{ ...fontMono }}
                     >
                       {formatRelativeTime(folder.created_at)}
                     </p>
                   </div>
+
                   <ChevronRight
                     size={14}
-                    className="shrink-0 text-muted-foreground/30"
+                    className="shrink-0 text-muted-foreground/30 transition-opacity duration-150 group-hover:text-muted-foreground/60"
                   />
                 </Link>
               ))}

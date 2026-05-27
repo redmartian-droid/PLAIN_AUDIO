@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${safePath}`);
+      // Decode the next parameter in case it contains query strings like ?resumeTranscription=1
+      return NextResponse.redirect(`${origin}${decodeURIComponent(safePath)}`);
     }
   }
 

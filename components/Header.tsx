@@ -247,7 +247,6 @@ export function Header({
       >
         {/* Left */}
         <div className="flex-1 flex items-center gap-3">
-          {/* Authenticated mobile: sidebar toggle + logo (logo hidden when sidebar open via CSS sibling, but we use JS state) */}
           {user ? (
             <>
               <button
@@ -297,10 +296,11 @@ export function Header({
                 key={href}
                 href={href}
                 className={cn(
-                  "text-[13px] transition-colors",
+                  "text-[13px] origin-bottom",
+                  "[transition:color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1)]",
                   active
-                    ? "text-foreground font-medium"
-                    : "text-muted-foreground/70 hover:text-foreground",
+                    ? "text-foreground font-semibold"
+                    : "text-muted-foreground/70 hover:text-foreground hover:scale-[1.06] hover:font-semibold",
                 )}
               >
                 {label}
@@ -386,12 +386,12 @@ export function Header({
                             aria-current={active ? "page" : undefined}
                             className={cn(
                               "group flex items-center justify-between px-2.5 h-[34px] w-full rounded-lg text-[13px]",
-                              "[transition:background-color_150ms_ease,color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1)]",
-                              "active:scale-[.98] active:bg-[#D63558]/[0.10]",
+                              "[transition:color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1)]",
+                              "active:scale-[.98] origin-left",
                               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558] focus-visible:ring-offset-2",
                               active
-                                ? "bg-[#D63558]/[0.07] text-foreground"
-                                : "text-muted-foreground/70 hover:text-foreground hover:bg-[#D63558]/[0.04]",
+                                ? "text-foreground font-semibold"
+                                : "text-muted-foreground/70 hover:text-foreground hover:scale-[1.03] hover:font-semibold",
                             )}
                           >
                             <span className="flex items-center gap-[9px]">
@@ -420,9 +420,9 @@ export function Header({
                       role="menuitem"
                       className={cn(
                         "group flex items-center justify-between px-2.5 h-[34px] w-full rounded-lg text-[13px]",
-                        "[transition:background-color_150ms_ease,color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1)]",
-                        "active:scale-[.98] active:bg-red-50/60",
-                        "text-muted-foreground/70 hover:text-red-600 hover:bg-[#D63558]/[0.04]",
+                        "[transition:color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1)]",
+                        "active:scale-[.98] origin-left",
+                        "text-muted-foreground/70 hover:text-red-600 hover:scale-[1.03] hover:font-semibold",
                       )}
                     >
                       <span className="flex items-center gap-[9px]">
@@ -442,12 +442,30 @@ export function Header({
           ) : (
             /* ── Guest ───────────────────────────────────────────────────── */
             <>
+              {/* Sign in — desktop only */}
+              <Link
+                href="/login"
+                className="hidden md:inline-flex text-[13px] text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
+              >
+                Sign in
+              </Link>
+
+              {/* Get started — always visible (header bar on mobile + desktop) */}
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 [transition:background-color_150ms_ease,box-shadow_150ms_ease] hover:shadow-md
+                  text-[12px] px-3 py-[7px]
+                  md:text-[13px] md:px-4 md:py-2"
+              >
+                Get started
+              </Link>
+
               {/* Hamburger — mobile/tablet only */}
               <button
                 onClick={() => setDrawerOpen((v) => !v)}
                 aria-label={drawerOpen ? "Close menu" : "Open menu"}
                 aria-expanded={drawerOpen}
-                className="flex md:hidden flex-col justify-center gap-[4.5px] w-8 h-8 rounded-lg hover:bg-[#f5f5f5] transition-colors items-center"
+                className="flex md:hidden flex-col justify-center gap-[4.5px] w-8 h-8 rounded-lg transition-colors items-center"
               >
                 <span
                   className="block h-[1.5px] bg-[#888] rounded-full"
@@ -480,22 +498,6 @@ export function Header({
                   }}
                 />
               </button>
-
-              {/* Desktop auth nav */}
-              <div className="hidden md:flex items-center gap-2">
-                <Link
-                  href="/login"
-                  className="text-[13px] text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/signup"
-                  className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground text-[13px] font-semibold px-4 py-2 rounded-full hover:bg-primary/90 [transition:background-color_150ms_ease,box-shadow_150ms_ease] hover:shadow-md"
-                >
-                  Get started
-                </Link>
-              </div>
             </>
           )}
         </div>
@@ -585,10 +587,11 @@ export function Header({
                     href={href}
                     onClick={() => setSheetOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 h-[52px] px-4 rounded-2xl text-[15px] transition-colors duration-150",
+                      "flex items-center gap-3 h-[52px] px-4 rounded-2xl text-[15px] origin-left",
+                      "[transition:color_150ms_ease,transform_220ms_cubic-bezier(.34,1.56,.64,1)]",
                       active
-                        ? "bg-[#D63558]/[0.06] text-[#111]"
-                        : "text-[#888] hover:text-[#111] hover:bg-[#fafafa]",
+                        ? "text-[#111] font-semibold"
+                        : "text-[#888] hover:text-[#111] hover:scale-[1.025] hover:font-semibold",
                     )}
                     style={{
                       opacity: sheetOpen ? 1 : 0,
@@ -627,7 +630,11 @@ export function Header({
             >
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-3 h-[52px] w-full px-4 rounded-2xl text-[15px] text-[#888] hover:text-red-500 hover:bg-red-50/60 transition-colors duration-150"
+                className={cn(
+                  "flex items-center gap-3 h-[52px] w-full px-4 rounded-2xl text-[15px] origin-left",
+                  "[transition:color_150ms_ease,transform_220ms_cubic-bezier(.34,1.56,.64,1)]",
+                  "text-[#888] hover:text-red-500 hover:scale-[1.025] hover:font-semibold",
+                )}
               >
                 <LogOut
                   size={16}
@@ -685,7 +692,7 @@ export function Header({
               </Link>
               <button
                 onClick={() => setDrawerOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-[#bbb] hover:text-[#111] hover:bg-[#f5f5f5] transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-[#bbb] hover:text-[#111] transition-colors"
                 aria-label="Close menu"
               >
                 <X size={15} strokeWidth={1.5} />
@@ -707,10 +714,11 @@ export function Header({
                   href={href}
                   onClick={() => setDrawerOpen(false)}
                   className={cn(
-                    "flex items-center h-11 px-3 rounded-xl text-[15px] transition-colors duration-150",
+                    "flex items-center h-11 px-3 rounded-xl text-[15px] origin-left",
+                    "[transition:color_150ms_ease,transform_220ms_cubic-bezier(.34,1.56,.64,1)]",
                     active
-                      ? "text-[#111] font-medium bg-[#f7f7f7]"
-                      : "text-[#999] hover:text-[#111] hover:bg-[#fafafa]",
+                      ? "text-[#111] font-semibold"
+                      : "text-[#999] hover:text-[#111] hover:scale-[1.03] hover:font-semibold",
                   )}
                   style={{
                     opacity: drawerOpen ? 1 : 0,
@@ -729,7 +737,7 @@ export function Header({
 
             <div className="mx-5 border-t border-[#f5f5f5]" />
 
-            {/* Auth CTAs */}
+            {/* Sign in only — Get started lives in the header bar */}
             <div
               className="flex flex-col gap-2 px-4 py-6"
               style={{
@@ -740,14 +748,6 @@ export function Header({
                   : "opacity 120ms ease, transform 120ms ease",
               }}
             >
-              <Link
-                href="/signup"
-                onClick={() => setDrawerOpen(false)}
-                className="flex items-center justify-center h-11 rounded-2xl text-[14px] font-semibold text-white"
-                style={{ background: "#D63558" }}
-              >
-                Get started
-              </Link>
               <Link
                 href="/login"
                 onClick={() => setDrawerOpen(false)}

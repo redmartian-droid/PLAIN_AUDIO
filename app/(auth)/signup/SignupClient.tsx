@@ -46,7 +46,7 @@ export default function SignupClient() {
       password,
       options: {
         data: { full_name: sanitizedName },
-        emailRedirectTo: `${window.location.origin}${dashboardHref}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(dashboardHref)}`,
       },
     });
 

@@ -30,11 +30,18 @@ export default async function TranscriptionPage({
     .eq("user_id", user.id)
     .single();
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+
   if (error || !transcription) notFound();
 
   return (
     <TranscriptionDetail
       transcription={transcription}
+      plan={profile?.plan ?? "free"}
     />
   );
 }

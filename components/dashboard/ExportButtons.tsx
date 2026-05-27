@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Download, ChevronDown, Check } from "lucide-react";
+import { Download, ChevronDown, Check, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ExportButtonsProps {
@@ -16,6 +16,7 @@ export interface ExportButtonsProps {
       speaker?: string;
     }> | null;
   };
+  plan?: "free" | "pro";
 }
 
 /* ─── Helpers ─── */
@@ -53,11 +54,32 @@ function toSRT(
 ): string {
   if (!segments || segments.length === 0) return "";
   return segments
-    .map(
-      (seg, i) =>
-        `${i + 1}\n${fmtSrt(seg.start)} --> ${fmtSrt(seg.end)}\n${seg.text}\n`,
-    )
+    .map((seg, i) => {
+      const cleanText = seg.text.trim().replace(/\r?\n/g, " ");
+      return `${i + 1}\n${fmtSrt(seg.start)} --> ${fmtSrt(seg.end)}\n${cleanText}\n`;
+    })
     .join("\n");
+}
+
+function fmtVtt(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  const ms = Math.round((sec % 1) * 1000);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
+}
+
+function toVTT(
+  segments: ExportButtonsProps["transcription"]["segments"],
+): string {
+  if (!segments || segments.length === 0) return "WEBVTT\n\n";
+  const cues = segments
+    .map((seg, i) => {
+      const cleanText = seg.text.trim().replace(/\r?\n/g, " ");
+      return `${i + 1}\n${fmtVtt(seg.start)} --> ${fmtVtt(seg.end)}\n${cleanText}`;
+    })
+    .join("\n\n");
+  return `WEBVTT\n\n${cues}\n`;
 }
 
 function toDocument(
@@ -109,7 +131,10 @@ p{margin:0 0 8pt 0;}
 
 /* ─── Component ─── */
 
-export function ExportButtons({ transcription }: ExportButtonsProps) {
+export function ExportButtons({
+  transcription,
+  plan = "free",
+}: ExportButtonsProps) {
   const [open, setOpen] = useState(false);
   const [justDone, setJustDone] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -119,7 +144,11 @@ export function ExportButtons({ transcription }: ExportButtonsProps) {
 
   useEffect(() => {
     if (open) {
-      requestAnimationFrame(() => itemRefs.current[0]?.focus());
+      // Focus first unlocked item
+      requestAnimationFrame(() => {
+        const first = itemRefs.current.find(Boolean);
+        first?.focus();
+      });
     } else {
       triggerRef.current?.focus();
     }
@@ -175,29 +204,40 @@ export function ExportButtons({ transcription }: ExportButtonsProps) {
   );
 
   const slug = transcription.title.replace(/\s+/g, "_").toLowerCase();
+  const isPro = plan === "pro";
 
   const options = [
     {
       label: "Plain text",
       detail: ".txt",
+      pro: false,
       action: () =>
         download(transcription.full_text || "", `${slug}.txt`, "text/plain"),
     },
     {
+      label: "WebVTT subtitles",
+      detail: ".vtt",
+      pro: false,
+      action: () =>
+        download(toVTT(transcription.segments), `${slug}.vtt`, "text/vtt"),
+    },
+    {
+      label: "SRT subtitles",
+      detail: ".srt",
+      pro: true,
+      action: () =>
+        download(toSRT(transcription.segments), `${slug}.srt`, "text/plain"),
+    },
+    {
       label: "Document",
       detail: ".doc",
+      pro: true,
       action: () =>
         download(
           toDocument(transcription),
           `${slug}.doc`,
           "application/msword",
         ),
-    },
-    {
-      label: "SRT subtitles",
-      detail: ".srt",
-      action: () =>
-        download(toSRT(transcription.segments), `${slug}.srt`, "text/plain"),
     },
   ];
 
@@ -252,39 +292,73 @@ export function ExportButtons({ transcription }: ExportButtonsProps) {
           className={cn(
             "absolute right-0 top-full mt-2 z-20",
             "bg-card border border-border rounded-xl shadow-lg",
-            "py-1 min-w-[180px]",
+            "py-1 min-w-[196px]",
             "origin-top-right",
             "animate-in fade-in-0 zoom-in-95 duration-200",
           )}
         >
-          {options.map((opt, i) => (
-            <button
-              key={opt.label}
-              ref={(el) => {
-                itemRefs.current[i] = el;
-              }}
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                opt.action();
-              }}
-              className={cn(
-                "w-full text-left min-h-[44px] flex items-center justify-between",
-                "px-4 gap-3",
-                "text-sm font-medium",
-                "transition-colors duration-150",
-                "text-muted-foreground hover:bg-accent hover:text-foreground active:bg-accent/70",
-                "focus-visible:outline-none focus-visible:bg-accent focus-visible:text-foreground",
-              )}
-            >
-              <span>
-                {opt.label}
-                <span className="text-xs text-muted-foreground/60 ml-1 font-normal">
-                  {opt.detail}
+          {options.map((opt, i) => {
+            const locked = opt.pro && !isPro;
+            return (
+              <button
+                key={opt.label}
+                ref={(el) => {
+                  itemRefs.current[i] = el;
+                }}
+                role="menuitem"
+                disabled={locked}
+                onClick={
+                  locked
+                    ? undefined
+                    : () => {
+                        setOpen(false);
+                        opt.action();
+                      }
+                }
+                className={cn(
+                  "w-full text-left min-h-[44px] flex items-center justify-between",
+                  "px-4 gap-3",
+                  "text-sm font-medium",
+                  "transition-colors duration-150",
+                  locked
+                    ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                    : [
+                        "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        "active:bg-accent/70",
+                        "focus-visible:outline-none focus-visible:bg-accent focus-visible:text-foreground",
+                      ],
+                )}
+              >
+                <span>
+                  {opt.label}
+                  <span className="text-xs text-muted-foreground/60 ml-1 font-normal">
+                    {opt.detail}
+                  </span>
                 </span>
-              </span>
-            </button>
-          ))}
+                {locked && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold tracking-wide text-[#D63558]/70">
+                    <Lock size={9} strokeWidth={2.5} />
+                    Pro
+                  </span>
+                )}
+              </button>
+            );
+          })}
+
+          {!isPro && (
+            <div className="mx-2 mt-1 mb-1.5 pt-1.5 border-t border-border/50">
+              <a
+                href="/dashboard/settings#billing"
+                className={cn(
+                  "flex items-center justify-center w-full h-8 rounded-lg",
+                  "text-[11px] font-semibold text-[#D63558]",
+                  "hover:bg-[#D63558]/[0.06] transition-colors duration-150",
+                )}
+              >
+                Upgrade to Pro →
+              </a>
+            </div>
+          )}
         </div>
       )}
     </div>

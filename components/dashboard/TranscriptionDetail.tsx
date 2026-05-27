@@ -880,10 +880,12 @@ export function TranscriptionDetail({
   transcription: initial,
   backLabel: _backLabel,
   backHref: _backHref,
+  plan = "free",
 }: {
   transcription: Transcription;
   backLabel?: string;
   backHref?: string;
+  plan?: "free" | "pro";
 }) {
   const [transcription, setTranscription] = useState<Transcription>(initial);
   const [speakerView, setSpeakerView] = useState(false);
@@ -1250,14 +1252,25 @@ export function TranscriptionDetail({
       {/* ── Stat strip ── */}
       {showResults && (
         <div className="mb-5 flex-shrink-0">
-          <p style={{ ...fontMono, fontSize: 11, letterSpacing: "0.04em", color: "#AAA8A4" }}>
+          <p
+            style={{
+              ...fontMono,
+              fontSize: 11,
+              letterSpacing: "0.04em",
+              color: "#AAA8A4",
+            }}
+          >
             {[
               formatRelativeTime(created_at),
               duration_seconds ? formatDuration(duration_seconds) : null,
               word_count ? `${word_count.toLocaleString()} words` : null,
               language ? language.toUpperCase() : null,
-              getSpeakerCount(activeSegments) >= 2 ? `${getSpeakerCount(activeSegments)} speakers` : null,
-            ].filter(Boolean).join(" · ")}
+              getSpeakerCount(activeSegments) >= 2
+                ? `${getSpeakerCount(activeSegments)} speakers`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
       )}

@@ -6,9 +6,9 @@ import { Check, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const FREE_FEATURES = [
-  { text: "3 transcriptions per day", included: true },
+  { text: "5 transcriptions per day", included: true },
   { text: "25MB file limit", included: true },
-  { text: "TXT export", included: true },
+  { text: "TXT & VTT export", included: true },
   { text: "7-day storage", included: true },
   { text: "Speaker diarization", included: false },
   { text: "AI summaries", included: false },
@@ -19,7 +19,7 @@ const FREE_FEATURES = [
 const PRO_FEATURES = [
   { text: "Unlimited transcriptions" },
   { text: "500MB file limit" },
-  { text: "TXT, SRT & DOC export" },
+  { text: "TXT, SRT, VTT & DOC export" },
   { text: "Permanent storage" },
   { text: "Speaker diarization" },
   { text: "AI summaries" },
