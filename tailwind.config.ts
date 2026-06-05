@@ -18,7 +18,7 @@ const config: Config = {
         foreground: "#0F0F0F",
         card: "#FFFFFF",
         "card-foreground": "#0F0F0F",
-        primary: "#D63558",
+        primary: "#f43f5e",
         "primary-foreground": "#FFFFFF",
         secondary: "#E4E4E4",
         "secondary-foreground": "#0F0F0F",

@@ -66,7 +66,7 @@ export function FAQSection() {
       <div className="max-w-6xl mx-auto px-6 py-40">
         <div className="grid md:grid-cols-12 gap-16 mb-20">
           <div className="md:col-span-4 md:sticky md:top-32 self-start">
-            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#D63558] mb-6">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#f43f5e] mb-6">
               FAQ
             </p>
             <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">

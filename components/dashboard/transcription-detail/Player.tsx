@@ -13,7 +13,7 @@ export function getPublicUrl(path: string): string {
 }
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
-const BTN_COLOR = "#D63558";
+const BTN_COLOR = "#f43f5e";
 const BAR_PLAYED = "#fce8ee";
 const BAR_UNPLAYED = "rgba(214, 53, 88, 0.12)";
 

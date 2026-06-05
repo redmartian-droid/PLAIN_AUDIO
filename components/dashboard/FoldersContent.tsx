@@ -102,7 +102,7 @@ function FolderListRow({ folder }: { folder: FolderItem }) {
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
       )}
     >
-      <FolderIcon className="w-5 h-5 shrink-0" />
+      <FolderIcon className="w-10 h-10 shrink-0" />
 
       <div className="flex-1 min-w-0">
         <p className="truncate text-[14px] font-medium text-[#0D0D0D] leading-[1.25]">
@@ -291,7 +291,7 @@ export function FoldersContent({
       {/* Mobile: List View */}
       <div className="sm:hidden flex flex-col gap-1">
         {inlineNew && (
-          <div className="py-4">
+          <div>
             <InlineFolderCard
               onConfirm={handleCreate}
               onCancel={() => setInlineNew(false)}
@@ -318,7 +318,7 @@ export function FoldersContent({
 
       {/* Empty State */}
       {!inlineNew && filtered.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center">
           <div className="mx-auto mb-3">
             <FolderIcon className="w-20 h-20 mx-auto opacity-50" />
           </div>

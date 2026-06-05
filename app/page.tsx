@@ -96,31 +96,36 @@ export default async function HomePage() {
       <section className="max-w-6xl mx-auto px-6 pt-24 md:pt-32 pb-28">
         <div className="grid md:grid-cols-12 gap-12 items-center">
           <div className="md:col-span-7">
-            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#aaa] mb-8">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#888] mb-5 flex items-center gap-3">
               AI transcription platform
             </p>
 
-            <h1 className="text-[clamp(2.5rem,5vw,4.5rem)] font-normal tracking-tight leading-[1.1] mb-8">
+            <h1 className="text-[clamp(2.5rem,5vw,4.5rem)] font-normal tracking-tight leading-[1.1] mb-6">
               Audio input{" "}
-              <span className="text-[#ccc]">→ structured output</span>
+              <span className="text-[#f43f5e]">→ structured output</span>
             </h1>
 
-            <p className="text-base text-[#888] max-w-md leading-[1.7] mb-12">
+            <p className="text-base text-[#555] max-w-md leading-[1.7] mb-10">
               Queued for transcription. Speaker labels, timestamps, and export
               formats ready on completion.
             </p>
 
-            <div className="flex items-center gap-6 text-[11px] text-[#bbb] tracking-wide uppercase">
-              <span>No credit card</span>
+            <div className="flex items-center gap-5 text-[11px] text-[#999] tracking-wide uppercase">
+              <span className="flex items-center gap-2">No credit card</span>
               <span className="text-[#e5e5e5]">/</span>
-              <span>3 free daily</span>
+              <span className="flex items-center gap-2">3 free daily</span>
               <span className="text-[#e5e5e5]">/</span>
-              <span>Fast processing</span>
+              <span className="flex items-center gap-2">Fast processing</span>
             </div>
           </div>
 
           <div className="md:col-span-5 md:pl-8 md:-mt-2">
-            <LandingUploadZone />
+            <div className="relative">
+              <div className="absolute -inset-6 bg-gradient-to-tr from-[#f43f5e]/[0.04] to-transparent rounded-[2rem] blur-3xl pointer-events-none" />
+              <div className="relative">
+                <LandingUploadZone />
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -150,7 +155,7 @@ export default async function HomePage() {
       <section className="max-w-6xl mx-auto px-6 py-40">
         <div className="grid md:grid-cols-12 gap-16 mb-32">
           <div className="md:col-span-4 md:sticky md:top-32 self-start">
-            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#D63558] mb-6">
+            <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#f43f5e] mb-6">
               Capabilities
             </p>
             <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">
@@ -194,7 +199,7 @@ export default async function HomePage() {
               ].map((f) => (
                 <div key={f.num} className="py-10 first:pt-0 last:pb-0 group">
                   <div className="flex items-baseline gap-6 mb-3">
-                    <span className="text-[10px] font-mono text-[#D63558] tracking-wider">
+                    <span className="text-[10px] font-mono text-[#f43f5e] tracking-wider">
                       {f.num}
                     </span>
                     <h3 className="text-lg font-normal text-[#111]">
@@ -214,7 +219,7 @@ export default async function HomePage() {
       {/* HOW IT WORKS */}
       <section className="border-t border-[#f0f0f0]">
         <div className="max-w-6xl mx-auto px-6 py-40">
-          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#D63558] mb-20">
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#f43f5e] mb-20">
             Workflow
           </p>
 
@@ -255,7 +260,7 @@ export default async function HomePage() {
               ].map((s) => (
                 <div key={s.step} className="py-10 first:pt-0 last:pb-0">
                   <div className="flex items-baseline gap-6 mb-3">
-                    <span className="text-[10px] font-mono text-[#D63558] tracking-wider shrink-0">
+                    <span className="text-[10px] font-mono text-[#f43f5e] tracking-wider shrink-0">
                       {s.step}
                     </span>
                     <h3 className="text-lg font-normal text-[#111]">
@@ -284,7 +289,7 @@ export default async function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-40">
           <div className="grid md:grid-cols-12 gap-16 mb-24">
             <div className="md:col-span-5">
-              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#D63558] mb-6">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#f43f5e] mb-6">
                 Use cases
               </p>
               <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">
@@ -316,7 +321,7 @@ export default async function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-40">
           <div className="grid md:grid-cols-12 gap-16 mb-24">
             <div className="md:col-span-5">
-              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#D63558] mb-6">
+              <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#f43f5e] mb-6">
                 Pricing
               </p>
               <h2 className="text-3xl md:text-4xl font-normal tracking-tight leading-[1.15]">
@@ -355,12 +360,12 @@ export default async function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-40">
           <div className="grid md:grid-cols-12 gap-16 items-end">
             <div className="md:col-span-7">
-              <h2 className="text-[clamp(2rem,4vw,3.5rem)] font-normal tracking-tight leading-[1.1] mb-8">
+              <h2 className="text-[clamp(2rem,4vw,3.5rem)] font-normal tracking-tight leading-[1.1] mb-6">
                 Start transcribing
                 <br />
-                <span className="text-[#ccc]">in seconds</span>
+                <span className="text-[#f43f5e]">in seconds</span>
               </h2>
-              <p className="text-sm text-[#999] leading-[1.8] max-w-md">
+              <p className="text-sm text-[#555] leading-[1.8] max-w-md">
                 Try it for free. No credit card required. Upgrade when you need
                 more.
               </p>

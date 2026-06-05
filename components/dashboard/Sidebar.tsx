@@ -21,7 +21,7 @@ interface SidebarProps {
 }
 
 const FOLDER_CAP = 3;
-const B = "#D63558";
+const B = "#f43f5e";
 
 interface NavItem {
   href: string;
@@ -54,7 +54,7 @@ function ShortcutPill({ keys }: { keys: string }) {
         "opacity-0 group-hover:opacity-100",
         "transition-opacity duration-150 ease-in-out",
         "hidden sm:inline-flex items-center px-1.5 py-0.5 rounded",
-        "text-[#D63558]/60",
+        "text-[#f43f5e]/60",
         "font-mono text-[10px] tracking-wider leading-none",
         "whitespace-nowrap",
       )}
@@ -72,11 +72,11 @@ function navLinkClass(active: boolean) {
     "min-h-[44px] sm:min-h-[34px]",
     "text-[13px]",
     "[transition:background-color_150ms_ease,color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1),opacity_150ms_ease]",
-    "active:scale-[.98] active:bg-[#D63558]/[0.10]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558] focus-visible:ring-offset-2",
+    "active:scale-[.98] active:bg-[#f43f5e]/[0.10]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f43f5e] focus-visible:ring-offset-2",
     active
-      ? "bg-[#D63558]/[0.07] text-foreground font-normal"
-      : "text-muted-foreground/70 hover:text-foreground hover:bg-[#D63558]/[0.04] font-normal",
+      ? "bg-[#f43f5e]/[0.07] text-foreground font-normal"
+      : "text-muted-foreground/70 hover:text-foreground hover:bg-[#f43f5e]/[0.04] font-normal",
   );
 }
 
@@ -89,7 +89,7 @@ function LogoMark({ transcribing = false }: { transcribing?: boolean }) {
     <Link
       href="/"
       className="flex items-center gap-[3px] font-display text-[15px] font-bold tracking-[0.12em] leading-none"
-      style={{ color: "#D63558" }}
+      style={{ color: "#f43f5e" }}
     >
       <span className="-mr-0.5">PLAI</span>
       <AudioBars active={transcribing} />
@@ -125,7 +125,7 @@ function AudioBars({
           style={{
             width: 3.5,
             height: h,
-            background: "#D63558",
+            background: "#f43f5e",
             animationName: active ? "waveBar" : undefined,
             animationDuration: duration,
             animationDelay: delay,
@@ -152,7 +152,7 @@ export function Sidebar({
 
   const usagePercent =
     dailyLimit === Infinity ? 0 : Math.min((dailyUsed / dailyLimit) * 100, 100);
-  const isPro = plan === "pro";
+  const isPro = plan?.toLowerCase() === "pro";
   const atLimit = dailyUsed >= dailyLimit;
 
   const visibleFolders = folders.slice(0, FOLDER_CAP);
@@ -228,7 +228,7 @@ export function Sidebar({
             className={cn(
               "w-11 h-11 flex items-center justify-center rounded-xl -mr-1",
               "text-muted-foreground hover:text-foreground",
-              "transition-colors active:bg-[#D63558]/10",
+              "transition-colors active:bg-[#f43f5e]/10",
             )}
             aria-label="Close sidebar"
           >
@@ -349,7 +349,7 @@ export function Sidebar({
                 {dailyUsed} of {dailyLimit} today
               </span>
               {atLimit && (
-                <span className="section-label text-[#D63558]">
+                <span className="section-label text-[#f43f5e]">
                   limit reached
                 </span>
               )}
@@ -367,7 +367,7 @@ export function Sidebar({
                 className="h-full rounded-full transition-[width] duration-500 ease-out"
                 style={{
                   width: `${usagePercent}%`,
-                  backgroundColor: atLimit ? "#D63558" : "#0D0D0D",
+                  backgroundColor: atLimit ? "#f43f5e" : "#0D0D0D",
                   opacity: atLimit ? 1 : 0.25,
                 }}
               />

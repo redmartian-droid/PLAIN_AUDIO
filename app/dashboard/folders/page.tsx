@@ -26,7 +26,7 @@ export default async function FoldersPage() {
   }));
 
   return (
-    <div className="flex-1 p-8 max-w-5xl mx-auto w-full">
+    <div className="flex-1 px-4 py-6 sm:p-8 max-w-5xl mx-auto w-full">
       <FoldersContent initialFolders={normalized} />
     </div>
   );

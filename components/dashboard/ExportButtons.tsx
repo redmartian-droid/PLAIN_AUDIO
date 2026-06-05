@@ -204,7 +204,7 @@ export function ExportButtons({
   );
 
   const slug = transcription.title.replace(/\s+/g, "_").toLowerCase();
-  const isPro = plan === "pro";
+  const isPro = plan?.toLowerCase() === "pro";
 
   const options = [
     {
@@ -253,9 +253,9 @@ export function ExportButtons({
         className={cn(
           "inline-flex items-center justify-center gap-2 shrink-0",
           "size-11 sm:min-h-[44px] sm:w-auto sm:px-4",
-          "bg-[#D63558] text-white font-semibold rounded-xl text-sm",
+          "bg-[#f43f5e] text-white font-semibold rounded-xl text-sm",
           "[transition:background-color_150ms_ease,box-shadow_150ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
-          "hover:bg-[#D63558]/80 hover:shadow-md hover:-translate-y-0.5",
+          "hover:bg-[#f43f5e]/80 hover:shadow-md hover:-translate-y-0.5",
           "active:scale-[.97] active:shadow-none active:translate-y-0",
         )}
       >
@@ -336,7 +336,7 @@ export function ExportButtons({
                   </span>
                 </span>
                 {locked && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold tracking-wide text-[#D63558]/70">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold tracking-wide text-[#f43f5e]/70">
                     <Lock size={9} strokeWidth={2.5} />
                     Pro
                   </span>
@@ -351,8 +351,8 @@ export function ExportButtons({
                 href="/dashboard/settings#billing"
                 className={cn(
                   "flex items-center justify-center w-full h-8 rounded-lg",
-                  "text-[11px] font-semibold text-[#D63558]",
-                  "hover:bg-[#D63558]/[0.06] transition-colors duration-150",
+                  "text-[11px] font-semibold text-[#f43f5e]",
+                  "hover:bg-[#f43f5e]/[0.06] transition-colors duration-150",
                 )}
               >
                 Upgrade to Pro →

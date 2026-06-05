@@ -21,7 +21,7 @@ export default async function DashboardLayout({
     .eq("id", user.id)
     .single();
 
-  const dailyLimit = profile?.plan === "pro" ? Infinity : 3;
+  const dailyLimit = profile?.plan?.toLowerCase() === "pro" ? Infinity : 3;
 
   const { data: folders } = await supabase
     .from("folders")

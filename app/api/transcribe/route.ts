@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  const isPro = profile.plan === "pro";
+  const isPro = profile.plan?.toLowerCase() === "pro";
   const today = new Date().toISOString().split("T")[0];
 
   if (profile.daily_reset_at < today) {

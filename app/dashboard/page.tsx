@@ -10,7 +10,7 @@ import { DashboardResume } from "@/components/dashboard/DashboardResume";
 import { cn } from "@/lib/utils";
 
 const FREE_LIMIT = 5;
-const B = "#D63558";
+const B = "#f43f5e";
 
 const fontSyne = {
   fontFamily: "var(--font-syne,'Helvetica Neue',sans-serif)",
@@ -244,7 +244,7 @@ export default async function DashboardPage() {
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   )}
                 >
-                  <FolderIcon className="w-5 h-5 shrink-0" />
+                  <FolderIcon className="w-10 h-10 shrink-0" />
 
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-[14px] font-medium text-[#0D0D0D] leading-[1.25]">

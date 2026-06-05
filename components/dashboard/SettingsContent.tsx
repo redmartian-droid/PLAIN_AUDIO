@@ -148,7 +148,7 @@ export function SettingsContent({ user, profile }: Props) {
     router.push("/");
   };
 
-  const isPro = profile?.plan === "pro";
+  const isPro = profile?.plan?.toLowerCase() === "pro";
   const initial = (name || "U").charAt(0).toUpperCase();
 
   return (

@@ -38,10 +38,10 @@ export function NewTranscriptionButton({
             aria-label="Transcribe files"
             className={cn(
               "inline-flex items-center justify-center gap-2",
-              "bg-[#D63558] text-white font-semibold rounded-xl",
+              "bg-[#f43f5e] text-white font-semibold rounded-xl",
               "min-h-[44px] px-4 text-sm",
               "[transition:background-color_150ms_ease,box-shadow_150ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
-              "hover:bg-[#D63558]/80 hover:shadow-md hover:-translate-y-0.5",
+              "hover:bg-[#f43f5e]/80 hover:shadow-md hover:-translate-y-0.5",
               "active:scale-[.97] active:shadow-none active:translate-y-0",
             )}
           >
@@ -77,7 +77,7 @@ export function NewTranscriptionButton({
             "[transition:background-color_200ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1),border-color_200ms_ease,color_200ms_ease]",
             "hover:bg-accent/40 hover:text-foreground hover:border-border",
             "active:scale-90",
-            "focus:outline-none focus:ring-2 focus:ring-[#D63558]/40 focus:ring-offset-2 focus:ring-offset-background",
+            "focus:outline-none focus:ring-2 focus:ring-[#f43f5e]/40 focus:ring-offset-2 focus:ring-offset-background",
           )}
           aria-label="Record audio"
           title="Record audio"
@@ -93,9 +93,9 @@ export function NewTranscriptionButton({
           className={cn(
             "inline-flex items-center justify-center gap-2 shrink-0",
             "size-11 sm:min-h-[44px] sm:w-auto sm:px-4",
-            "bg-[#D63558] text-white font-semibold rounded-xl text-sm",
+            "bg-[#f43f5e] text-white font-semibold rounded-xl text-sm",
             "[transition:background-color_150ms_ease,box-shadow_150ms_ease,transform_250ms_cubic-bezier(.34,1.56,.64,1)]",
-            "hover:bg-[#D63558]/80 hover:shadow-md hover:-translate-y-0.5",
+            "hover:bg-[#f43f5e]/80 hover:shadow-md hover:-translate-y-0.5",
             "active:scale-[.97] active:shadow-none active:translate-y-0",
           )}
         >

@@ -9,7 +9,7 @@
 :root {
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
-  --primary: #d63558;
+  --primary: #f43f5e;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -305,7 +305,7 @@ input:focus-visible {
 }
 
 .dark {
-  --background: #d63558;
+  --background: #f43f5e;
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
@@ -392,7 +392,7 @@ input:focus-visible {
 
 /* ── Brand color aliases ─────────────────────────────────────────────────── */
 :root {
-  --brand-red: #d63558;
+  --brand-red: #f43f5e;
   --brand-red-light: rgba(214, 53, 88, 0.1);
   --brand-red-lighter: rgba(214, 53, 88, 0.04);
   --border-warm: #e2e0db;
@@ -409,8 +409,8 @@ aside nav a:hover,
 aside nav button:hover,
 header a.group:hover,
 header button.group:hover,
-header nav a:hover,
-.fixed[role="dialog"] a:hover {
+/* Scoped to authenticated account menu — guest drawer excluded */
+.fixed[role="dialog"][aria-label="Account menu"] a:hover {
   background-color: var(--ui-hover) !important;
 }
 
@@ -423,9 +423,9 @@ header .group[aria-current="page"] {
   background-color: var(--ui-hover) !important;
 }
 
-/* Mobile sheet/drawer overrides */
-.fixed[role="dialog"] nav a:hover,
-.fixed[role="dialog"] nav a[aria-current="page"] {
+/* Mobile sheet — authenticated account menu only */
+.fixed[role="dialog"][aria-label="Account menu"] nav a:hover,
+.fixed[role="dialog"][aria-label="Account menu"] nav a[aria-current="page"] {
   background-color: var(--ui-hover) !important;
 }
 
@@ -1649,7 +1649,7 @@ header .group[aria-current="page"] {
   gap: 0.5rem;
   width: 100%;
   min-height: 48px;
-  padding: 0.75rem 1.5rem;
+  padding: 0.1rem 1.5rem;
   background-color: var(--brand-red);
   color: white;
   font-size: 0.875rem;
@@ -1720,9 +1720,10 @@ header .group[aria-current="page"] {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  background-color: rgba(13, 13, 13, 0.04);
+  background-color: #fff0f3;
   border-radius: 9999px;
   padding: 0.25rem;
+  border: 1px solid var(--border-warm);
 }
 
 .pricing-toggle-btn {
@@ -1732,7 +1733,7 @@ header .group[aria-current="page"] {
   font-weight: 500;
   line-height: 1.25rem;
   transition: all 200ms ease;
-  color: #999;
+  color: #f43f5e;
 }
 
 .pricing-toggle-btn:hover {
@@ -1743,6 +1744,7 @@ header .group[aria-current="page"] {
   background-color: white;
   color: #0d0d0d;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-warm);
 }
 
 /* ── Badge: pill (save %, most popular) ─────────────────────────────────── */
@@ -1767,6 +1769,20 @@ header .group[aria-current="page"] {
   color: rgba(255, 255, 255, 0.6);
 }
 
+.badge-popular {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #f43f5e;
+  background-color: #fff0f3;
+  border: 1px solid var(--brand-red);
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
+}
+
 /* ── Pricing card ───────────────────────────────────────────────────────── */
 .pricing-card {
   border-radius: var(--radius-2xl, 1rem);
@@ -1780,24 +1796,12 @@ header .group[aria-current="page"] {
 
 .pricing-card.dark {
   background-color: #0d0d0d;
-  border: 1px solid #0d0d0d;
+  border: 1px solid #f43f5e;
   position: relative;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-}
-
-/* ── Dot texture overlay (Pro card) ─────────────────────────────────────── */
-.dot-texture {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.015;
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    white 1px,
-    transparent 0
-  );
-  background-size: 24px 24px;
+  overflow: visible;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 24px 48px -12px rgba(244, 63, 94, 0.15);
 }
 
 /* ── Plan eyebrow ───────────────────────────────────────────────────────── */
@@ -1901,11 +1905,10 @@ header .group[aria-current="page"] {
 .btn-pricing.solid {
   background-color: var(--brand-red);
   color: white;
-  position: relative;
 }
 
 .btn-pricing.solid:hover {
-  background-color: #b8294a;
+  filter: brightness(1.1);
 }
 
 /* ── Feature list ───────────────────────────────────────────────────────── */

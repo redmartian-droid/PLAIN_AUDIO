@@ -406,7 +406,7 @@ export function RecordModal({ open, onClose, folderId }: RecordModalProps) {
               {/* Record button */}
               <button
                 onClick={handleStart}
-                className="btn-record focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558] focus-visible:ring-offset-2"
+                className="btn-record focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f43f5e] focus-visible:ring-offset-2"
               >
                 <Mic size={28} strokeWidth={2} />
               </button>
@@ -434,8 +434,8 @@ export function RecordModal({ open, onClose, folderId }: RecordModalProps) {
               {/* Red indicator + timer */}
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D63558] opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#D63558]" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f43f5e] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#f43f5e]" />
                 </span>
                 <span className="text-[28px] font-semibold tracking-tight tabular-nums text-foreground">
                   {formatTime(duration)}

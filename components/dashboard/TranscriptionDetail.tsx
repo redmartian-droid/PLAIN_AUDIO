@@ -24,7 +24,7 @@ import { formatRelativeTime, formatDuration, cn } from "@/lib/utils";
 import { Toolbar } from "@/components/dashboard/transcription-detail/Toolbar";
 import { Player } from "@/components/dashboard/transcription-detail/Player";
 
-const B = "#D63558";
+const B = "#f43f5e";
 const fontSyne = {
   fontFamily: "var(--font-syne,'Helvetica Neue',sans-serif)",
 } as const;
@@ -1113,7 +1113,7 @@ export function TranscriptionDetail({
               className="text-[12px] md:text-[13px] text-foreground font-semibold truncate max-w-[200px]"
               style={fontSyne}
             >
-              {title}
+              {transcription.title}
             </span>
           </>
         ) : (
@@ -1135,7 +1135,7 @@ export function TranscriptionDetail({
               className="text-[12px] md:text-[13px] text-foreground font-semibold truncate max-w-[240px]"
               style={fontSyne}
             >
-              {title}
+              {transcription.title}
             </span>
           </>
         )}
@@ -1151,7 +1151,7 @@ export function TranscriptionDetail({
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleRename();
                 if (e.key === "Escape") {
-                  setTitleDraft(title);
+                  setTitleDraft(transcription.title);
                   setIsEditingTitle(false);
                 }
               }}
@@ -1179,7 +1179,7 @@ export function TranscriptionDetail({
                 color: "#0D0D0D",
               }}
             >
-              {title}
+              {transcription.title}
             </h1>
           )}
           {!showResults && (
@@ -1206,9 +1206,10 @@ export function TranscriptionDetail({
             onDelete={() => setShowDeleteDialog(true)}
             showMobileActions={showMobileActions}
             onMobileActionsChange={setShowMobileActions}
+            plan={plan}
             transcription={{
               id: transcription.id,
-              title,
+              title: transcription.title,
               full_text: activeText,
               segments: activeSegments ?? null,
             }}

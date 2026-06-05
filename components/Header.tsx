@@ -23,7 +23,6 @@ interface HeaderProps {
   title?: string;
   actions?: React.ReactNode;
   className?: string;
-  transcribing?: boolean;
 }
 
 interface NavItem {
@@ -59,29 +58,11 @@ function ShortcutPill({ keys }: { keys: string }) {
         "opacity-0 group-hover:opacity-100",
         "transition-opacity duration-150 ease-in-out",
         "inline-flex items-center px-1.5 py-0.5 rounded",
-        "text-[#D63558]/60 font-mono text-[10px] tracking-wider leading-none whitespace-nowrap",
+        "text-[#f43f5e]/60 font-mono text-[10px] tracking-wider leading-none whitespace-nowrap",
       )}
       aria-hidden
     >
       {keys}
-    </span>
-  );
-}
-
-// ── Waveform mark ─────────────────────────────────────────────────────────────
-
-function AudioBars({
-  active = false,
-  className,
-}: {
-  active?: boolean;
-  className?: string;
-}) {
-  return (
-    <span className={cn("waveform-bars", className)} aria-hidden>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <span key={i} className={cn("waveform-bar", active && "active")} />
-      ))}
     </span>
   );
 }
@@ -117,13 +98,7 @@ function Avatar({
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-export function Header({
-  user,
-  title,
-  actions,
-  className,
-  transcribing = false,
-}: HeaderProps) {
+export function Header({ user, title, actions, className }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -253,28 +228,26 @@ export function Header({
                 onClick={() =>
                   window.dispatchEvent(new CustomEvent("toggle-sidebar"))
                 }
-                className="sm:hidden p-2 -ml-2 rounded-lg active:bg-[#D63558]/10 text-muted-foreground hover:text-foreground transition-colors"
+                className="sm:hidden p-2 -ml-2 rounded-lg active:bg-[#f43f5e]/10 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Toggle sidebar"
               >
                 <PanelLeft size={18} strokeWidth={1.5} />
               </button>
               {/* Logo hidden on mobile — lives in sidebar instead */}
-              <div className="hidden sm:flex items-center gap-[3px] font-display text-[15px] font-bold tracking-[0.12em]">
-                <Link href="/" style={{ color: "#D63558" }}>
-                  <span className="-mr-0.5">PLAI</span>
+              <div className="hidden sm:flex items-center">
+                <Link href="/">
+                  <img
+                    src="/logo.svg"
+                    alt="PLAIN"
+                    className="h-[30px] w-auto"
+                  />
                 </Link>
-                <AudioBars active={transcribing} />
               </div>
             </>
           ) : (
             /* Guest: logo always visible */
-            <Link
-              href="/"
-              className="flex items-center gap-[3px] font-display text-[15px] font-bold tracking-[0.12em]"
-              style={{ color: "#D63558" }}
-            >
-              <span className="-mr-0.5">PLAI</span>
-              <AudioBars active={transcribing} />
+            <Link href="/" className="flex items-center">
+              <img src="/logo.svg" alt="PLAIN" className="h-[30px] w-auto" />
             </Link>
           )}
 
@@ -296,11 +269,12 @@ export function Header({
                 key={href}
                 href={href}
                 className={cn(
-                  "text-[13px] origin-bottom",
-                  "[transition:color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1)]",
+                  "text-[13px]",
+                  "transition-colors duration-150 ease",
+                  "hover:bg-transparent",
                   active
-                    ? "text-foreground font-semibold"
-                    : "text-muted-foreground/70 hover:text-foreground hover:scale-[1.06] hover:font-semibold",
+                    ? "text-foreground font-normal"
+                    : "text-muted-foreground/70 hover:text-foreground",
                 )}
               >
                 {label}
@@ -386,12 +360,11 @@ export function Header({
                             aria-current={active ? "page" : undefined}
                             className={cn(
                               "group flex items-center justify-between px-2.5 h-[34px] w-full rounded-lg text-[13px]",
-                              "[transition:color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1)]",
-                              "active:scale-[.98] origin-left",
-                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D63558] focus-visible:ring-offset-2",
+                              "transition-colors duration-150 ease",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f43f5e] focus-visible:ring-offset-2",
                               active
-                                ? "text-foreground font-semibold"
-                                : "text-muted-foreground/70 hover:text-foreground hover:scale-[1.03] hover:font-semibold",
+                                ? "bg-[#f43f5e]/[0.07] text-foreground font-normal"
+                                : "text-muted-foreground/70 hover:text-foreground hover:bg-[#f43f5e]/[0.04]",
                             )}
                           >
                             <span className="flex items-center gap-[9px]">
@@ -400,7 +373,7 @@ export function Header({
                                 aria-hidden
                                 className={
                                   active
-                                    ? "text-[#D63558]"
+                                    ? "text-[#f43f5e]"
                                     : "text-muted-foreground/50"
                                 }
                               />
@@ -420,9 +393,8 @@ export function Header({
                       role="menuitem"
                       className={cn(
                         "group flex items-center justify-between px-2.5 h-[34px] w-full rounded-lg text-[13px]",
-                        "[transition:color_150ms_ease,transform_200ms_cubic-bezier(.34,1.56,.64,1)]",
-                        "active:scale-[.98] origin-left",
-                        "text-muted-foreground/70 hover:text-red-600 hover:scale-[1.03] hover:font-semibold",
+                        "transition-colors duration-150 ease",
+                        "text-muted-foreground/70 hover:text-red-600",
                       )}
                     >
                       <span className="flex items-center gap-[9px]">
@@ -587,11 +559,11 @@ export function Header({
                     href={href}
                     onClick={() => setSheetOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 h-[52px] px-4 rounded-2xl text-[15px] origin-left",
-                      "[transition:color_150ms_ease,transform_220ms_cubic-bezier(.34,1.56,.64,1)]",
+                      "flex items-center gap-3 h-[52px] px-4 rounded-2xl text-[15px]",
+                      "transition-colors duration-150 ease",
                       active
-                        ? "text-[#111] font-semibold"
-                        : "text-[#888] hover:text-[#111] hover:scale-[1.025] hover:font-semibold",
+                        ? "bg-[#f43f5e]/[0.07] text-[#111] font-normal"
+                        : "text-[#888] hover:text-[#111] hover:bg-[#f43f5e]/[0.04]",
                     )}
                     style={{
                       opacity: sheetOpen ? 1 : 0,
@@ -606,7 +578,7 @@ export function Header({
                     <Icon
                       size={16}
                       aria-hidden
-                      className={active ? "text-[#D63558]" : "text-[#ccc]"}
+                      className={active ? "text-[#f43f5e]" : "text-[#ccc]"}
                     />
                     {label}
                   </Link>
@@ -631,9 +603,9 @@ export function Header({
               <button
                 onClick={handleSignOut}
                 className={cn(
-                  "flex items-center gap-3 h-[52px] w-full px-4 rounded-2xl text-[15px] origin-left",
-                  "[transition:color_150ms_ease,transform_220ms_cubic-bezier(.34,1.56,.64,1)]",
-                  "text-[#888] hover:text-red-500 hover:scale-[1.025] hover:font-semibold",
+                  "flex items-center gap-3 h-[52px] w-full px-4 rounded-2xl text-[15px]",
+                  "transition-colors duration-150 ease",
+                  "text-[#888] hover:text-red-500",
                 )}
               >
                 <LogOut
@@ -684,11 +656,9 @@ export function Header({
               <Link
                 href="/"
                 onClick={() => setDrawerOpen(false)}
-                className="flex items-center gap-[3px] font-display text-[15px] font-bold tracking-[0.12em]"
-                style={{ color: "#D63558" }}
+                className="flex items-center"
               >
-                <span className="-mr-0.5">PLAI</span>
-                <AudioBars active={false} />
+                <img src="/logo.svg" alt="PLAIN" className="h-[30px] w-auto" />
               </Link>
               <button
                 onClick={() => setDrawerOpen(false)}
@@ -714,11 +684,12 @@ export function Header({
                   href={href}
                   onClick={() => setDrawerOpen(false)}
                   className={cn(
-                    "flex items-center h-11 px-3 rounded-xl text-[15px] origin-left",
-                    "[transition:color_150ms_ease,transform_220ms_cubic-bezier(.34,1.56,.64,1)]",
+                    "flex items-center h-11 px-3 text-[15px]",
+                    "bg-transparent hover:bg-transparent",
+                    "transition-colors duration-150 ease",
                     active
-                      ? "text-[#111] font-semibold"
-                      : "text-[#999] hover:text-[#111] hover:scale-[1.03] hover:font-semibold",
+                      ? "text-[#111] font-normal"
+                      : "text-[#999] hover:text-[#111]",
                   )}
                   style={{
                     opacity: drawerOpen ? 1 : 0,

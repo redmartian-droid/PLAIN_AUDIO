@@ -79,6 +79,7 @@ export function LandingUploadZone() {
 
   return (
     <div className="w-full p-5 space-y-2.5">
+      {/* Desktop: drag zone */}
       <div
         onDragEnter={handleDragEnter}
         onDragOver={(e) => e.preventDefault()}
@@ -86,19 +87,11 @@ export function LandingUploadZone() {
         onDrop={handleDrop}
         onClick={() => !file && inputRef.current?.click()}
         className={cn(
-          "upload-zone",
+          "upload-zone hidden md:block",
           dragging && "dragging",
           file && "has-file",
         )}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          accept={ACCEPTED.join(",")}
-          onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])}
-        />
-
         {file ? (
           <div className="file-chip">
             <FileAudio size={15} className="file-chip-icon" strokeWidth={1.5} />
@@ -140,6 +133,37 @@ export function LandingUploadZone() {
         )}
       </div>
 
+      {/* Mobile: file chip only */}
+      {file && (
+        <div className="md:hidden flex items-center gap-3 px-3 py-3 rounded-xl border border-[#e2e0db] bg-white">
+          <FileAudio size={15} className="text-[#999]" strokeWidth={1.5} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium text-[#111] truncate">
+              {file.name}
+            </p>
+            <p className="text-[11px] text-[#aaa]">
+              {(file.size / 1024 / 1024).toFixed(1)} MB
+            </p>
+          </div>
+          <button
+            onClick={() => setFile(null)}
+            className="btn-icon-micro"
+            aria-label="Remove file"
+          >
+            <X size={11} strokeWidth={2} />
+          </button>
+        </div>
+      )}
+
+      {/* Shared file input */}
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        accept={ACCEPTED.join(",")}
+        onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])}
+      />
+
       {error && <p className="text-error-micro">{error}</p>}
 
       <button
@@ -155,6 +179,14 @@ export function LandingUploadZone() {
         }
         className="btn-cta"
       >
+        {!loading && (
+          <img
+            src="/waveform.svg"
+            alt=""
+            className="h-14 w-auto opacity-80"
+            aria-hidden
+          />
+        )}
         {loading ? "Saving…" : file ? "Transcribe this file" : "Start for free"}
         {!loading && <ArrowRight size={14} strokeWidth={2} />}
       </button>
