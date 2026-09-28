@@ -1,6 +1,6 @@
-# Kungwi — AI Transcription SaaS
+# PLAIN AUDIO — AI Transcription SaaS
 
-Kungwi is an AI-powered transcription SaaS built with:
+PLAIN AUDIO is an AI-powered transcription SaaS built with:
 
 - **Next.js 15** (App Router, React Server Components)
 - **Supabase** (Auth, PostgreSQL, Storage)
@@ -47,7 +47,7 @@ cp .env.example .env.local
 ### 4. Set up Polar.sh
 
 1. Create an account at [polar.sh](https://polar.sh)
-2. Create a product named "Kungwi Pro" with monthly & annual pricing
+2. Create a product named "PLAIN AUDIO Pro" with monthly & annual pricing
 3. Add a webhook pointing to `https://yourdomain.com/api/webhooks/polar`
 4. Select events: `subscription.created`, `subscription.updated`, `subscription.canceled`, `subscription.revoked`
 
